@@ -127,6 +127,18 @@ export default function ServerDetail() {
             Sahada Kullanımda
           </span>
         );
+      case ServerStatus.READY:
+        return (
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+            Gönderilebilir
+          </span>
+        );
+      case ServerStatus.INACTIVE:
+        return (
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+            Pasif
+          </span>
+        );
       default:
         return null;
     }
@@ -314,11 +326,11 @@ export default function ServerDetail() {
               </button>
             )}
             
-            {/* Düzenle butonu sadece Sahada Kullanımda olan sunucularda gözüksün */}
-            {server.status === ServerStatus.FIELD && (
+            {/* Düzenle butonu Gönderilebilir veya Sahada Kullanımda durumundaki sunucularda gözüksün */}
+            {(server.status === ServerStatus.FIELD || server.status === ServerStatus.READY) && (
               <button 
                 onClick={() => {
-                  // Düzenleme modalı açılacak
+                  // Düzenleme modalı açılacak - şimdilik bir bildirim gösterelim
                   toast({
                     title: "Bilgi",
                     description: "Düzenleme özelliği şu anda yapım aşamasındadır."

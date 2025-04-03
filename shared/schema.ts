@@ -8,7 +8,10 @@ export const servers = pgTable("servers", {
   model: text("model").notNull(),
   specs: text("specs").notNull(),
   location: text("location").notNull(),
-  status: text("status").notNull(), // "active", "transit", "setup"
+  status: text("status").notNull(), // "active", "transit", "setup", "field", "ready", "inactive"
+  ipAddress: text("ip_address"),
+  username: text("username"),
+  password: text("password"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -68,7 +71,9 @@ export enum ServerStatus {
   ACTIVE = "active",       // Aktif (Depoda)
   TRANSIT = "transit",     // Transfer Sürecinde
   SETUP = "setup",         // Kurulumda
-  FIELD = "field"          // Sahada Kullanımda
+  FIELD = "field",         // Sahada Kullanımda
+  READY = "ready",         // Gönderilebilir
+  INACTIVE = "inactive"    // Pasif
 }
 
 export enum ActivityType {
@@ -77,5 +82,7 @@ export enum ActivityType {
   NOTE = "note",
   MAINTENANCE = "maintenance",  // We keep "maintenance" in activities for backward compatibility
   SETUP = "setup",              // But add a new SETUP type for new activities
+  EDIT = "edit",                // For editing server information
+  STATUS = "status",            // For status changes
   DELETE = "delete"
 }

@@ -39,25 +39,29 @@ export default function SetupServer() {
 
   const setupMutation = useMutation({
     mutationFn: async () => {
-      // Önce sunucu notlarını ekleyelim
-      const setupNotes = `IP Adresi: ${formData.ipAddress}
-Kullanıcı Adı: ${formData.username}
-Şifre: ${formData.password}
-${formData.notes ? `Ek Notlar: ${formData.notes}` : ""}`;
-
-      await apiRequest("POST", `/api/servers/${id}/notes`, {
-        note: setupNotes
+      // Sunucu bilgilerini güncelle - artık notlara kaydetmek yerine sunucu verisine kaydedelim
+      await apiRequest("PUT", `/api/servers/${id}`, {
+        ipAddress: formData.ipAddress,
+        username: formData.username,
+        password: formData.password
       });
+      
+      // Eğer ek notlar varsa, ayrıca not olarak ekleyelim
+      if (formData.notes.trim()) {
+        await apiRequest("POST", `/api/servers/${id}/notes`, {
+          note: formData.notes
+        });
+      }
 
       // Eğer kurulum tamamlandı işaretlendiyse, durumu güncelleyelim
       if (formData.completedSetup) {
         await apiRequest("PUT", `/api/servers/${id}`, {
-          status: ServerStatus.FIELD // Sahada Kullanımda olarak güncelle
+          status: ServerStatus.READY // Gönderilebilir olarak işaretle
         });
 
         // Aktivite ekle
         await apiRequest("POST", `/api/servers/${id}/notes`, {
-          note: "Kurulum tamamlandı, saha kullanımına alındı."
+          note: "Kurulum tamamlandı, gönderilebilir duruma alındı."
         });
       }
     },
@@ -72,7 +76,7 @@ ${formData.notes ? `Ek Notlar: ${formData.notes}` : ""}`;
       toast({
         title: "Başarılı",
         description: formData.completedSetup 
-          ? "Kurulum tamamlandı ve sunucu saha kullanımına alındı." 
+          ? "Kurulum tamamlandı ve sunucu gönderilebilir duruma alındı." 
           : "Kurulum bilgileri kaydedildi.",
       });
 
@@ -278,7 +282,7 @@ ${formData.notes ? `Ek Notlar: ${formData.notes}` : ""}`;
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="completedSetup" className="font-medium text-gray-700">Kurulum tamamlandı</label>
-                  <p className="text-gray-500">Kurulumu tamamladıysanız işaretleyin. Sunucu durumu "Sahada Kullanımda" olarak güncellenecektir.</p>
+                  <p className="text-gray-500">Kurulumu tamamladıysanız işaretleyin. Sunucu durumu "Gönderilebilir" olarak güncellenecektir.</p>
                 </div>
               </div>
               
