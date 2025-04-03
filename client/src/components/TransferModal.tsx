@@ -34,7 +34,7 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
       // Transfer kaydını oluştur
       await apiRequest('POST', `/api/servers/${server.id}/transfers`, {
         toLocation: formData.targetLocation,
-        transferDate: new Date(formData.transferDate),
+        transferDate: formData.transferDate, // String olarak gönderiyoruz, API'de dönüştürülecek
         notes: serverNote
       });
     },

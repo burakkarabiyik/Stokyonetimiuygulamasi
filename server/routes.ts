@@ -208,10 +208,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Sunucu bulunamadı" });
       }
       
+      // String tarih formatını Date'e çevir
+      const transferDate = new Date(req.body.transferDate);
+      
       const transferData = insertTransferSchema.parse({
         ...req.body,
         serverId: id,
-        fromLocation: server.location
+        fromLocation: server.location,
+        transferDate: transferDate
       });
       
       const transfer = await storage.createTransfer(transferData);
