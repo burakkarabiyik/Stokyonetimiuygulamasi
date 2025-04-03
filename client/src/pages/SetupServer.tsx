@@ -19,8 +19,8 @@ export default function SetupServer() {
     completedSetup: false,
   });
 
-  const { data: server, isLoading } = useQuery({
-    queryKey: ['/api/servers', parseInt(id || "0")],
+  const { data: server, isLoading } = useQuery<any>({
+    queryKey: [`/api/servers/${id}`],
     queryFn: () => apiRequest("GET", `/api/servers/${id}`),
   });
 
@@ -35,7 +35,7 @@ export default function SetupServer() {
         });
       }
     }
-  }, [server]);
+  }, [server, toast]);
 
   const setupMutation = useMutation({
     mutationFn: async () => {
@@ -56,17 +56,14 @@ ${formData.notes ? `Ek Notlar: ${formData.notes}` : ""}`;
         });
 
         // Aktivite ekle
-        await apiRequest("POST", `/api/servers/${id}/transfers`, {
-          fromLocation: server.location,
-          toLocation: "Saha Kullanımı",
-          notes: "Kurulum tamamlandı, saha kullanımına alındı.",
-          isFieldDeployment: true
+        await apiRequest("POST", `/api/servers/${id}/notes`, {
+          note: "Kurulum tamamlandı, saha kullanımına alındı."
         });
       }
     },
     onSuccess: () => {
       // Verileri yenile
-      queryClient.invalidateQueries({ queryKey: ['/api/servers', parseInt(id || "0")] });
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/servers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/activities'] });

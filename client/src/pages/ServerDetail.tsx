@@ -261,7 +261,8 @@ export default function ServerDetail() {
                   // Kurulum durumuna al
                   const setupMutation = async () => {
                     await apiRequest('PUT', `/api/servers/${id}`, {
-                      status: ServerStatus.SETUP
+                      status: ServerStatus.SETUP,
+                      location: "Kurulum Merkezi"
                     });
                     
                     await apiRequest('POST', `/api/servers/${id}/notes`, {
