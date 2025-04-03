@@ -8,6 +8,7 @@ import Servers from "@/pages/Servers";
 import ServerDetail from "@/pages/ServerDetail";
 import SetupServer from "@/pages/SetupServer";
 import Reports from "@/pages/Reports";
+import Locations from "@/pages/Locations";
 import Sidebar from "@/components/Sidebar";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
@@ -99,6 +100,7 @@ function AuthenticatedApp() {
             <Route path="/servers" component={Servers} />
             <Route path="/servers/:id" component={ServerDetail} />
             <Route path="/servers/:id/setup" component={SetupServer} />
+            <Route path="/locations" component={Locations} />
             <Route path="/reports" component={Reports} />
             <Route path="/profile" component={ProfilePage} />
             <Route component={NotFound} />
