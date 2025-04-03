@@ -237,6 +237,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // GET /api/transfers - Get all transfers
+  app.get("/api/transfers", async (_req: Request, res: Response) => {
+    try {
+      const transfers = await storage.getAllTransfers();
+      res.json(transfers);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
   // POST /api/servers/:id/transfers - Create a transfer for a server
   app.post("/api/servers/:id/transfers", async (req: Request, res: Response) => {
     try {

@@ -7,6 +7,7 @@ import Dashboard from "@/pages/Dashboard";
 import Servers from "@/pages/Servers";
 import ServerDetail from "@/pages/ServerDetail";
 import SetupServer from "@/pages/SetupServer";
+import Reports from "@/pages/Reports";
 import Sidebar from "@/components/Sidebar";
 import { useState } from "react";
 
@@ -65,6 +66,7 @@ function Router() {
             <Route path="/servers" component={Servers} />
             <Route path="/servers/:id" component={ServerDetail} />
             <Route path="/servers/:id/setup" component={SetupServer} />
+            <Route path="/reports" component={Reports} />
             <Route component={NotFound} />
           </Switch>
         </main>

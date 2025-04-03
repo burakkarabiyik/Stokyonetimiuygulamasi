@@ -38,10 +38,7 @@ export default function EditNoteModal({ isOpen, onClose, note, onNoteUpdated }: 
     setIsUpdating(true);
 
     try {
-      await apiRequest(`/api/server-notes/${note.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ note: updatedNote }),
-      });
+      await apiRequest('PUT', `/api/server-notes/${note.id}`, { note: updatedNote });
 
       toast({
         title: "Başarılı",
