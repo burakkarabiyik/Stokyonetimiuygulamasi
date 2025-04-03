@@ -91,7 +91,10 @@ export class MemStorage implements IStorage {
     const server: Server = { 
       ...insertServer, 
       id,
-      createdAt: now
+      createdAt: now,
+      ipAddress: insertServer.ipAddress || null,
+      username: insertServer.username || null,
+      password: insertServer.password || null
     };
     
     this.servers.set(id, server);
@@ -187,8 +190,10 @@ export class MemStorage implements IStorage {
   
   async updateNote(id: number, noteUpdate: { note: string }): Promise<ServerNote | undefined> {
     // Tüm notları tara
-    for (const [serverId, notes] of this.serverNotes.entries()) {
-      const noteIndex = notes.findIndex(note => note.id === id);
+    for (const entry of this.serverNotes.entries()) {
+      const serverId = entry[0];
+      const notes = entry[1];
+      const noteIndex = notes.findIndex(noteItem => noteItem.id === id);
       
       if (noteIndex !== -1) {
         // Notu güncelle
@@ -352,6 +357,9 @@ export class MemStorage implements IStorage {
       const newServer: Server = { 
         ...server, 
         id,
+        ipAddress: server.ipAddress || null,
+        username: server.username || null,
+        password: server.password || null,
         createdAt: new Date(now.getTime() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000) // Random date within last 10 days
       };
       
@@ -416,8 +424,10 @@ export class MemStorage implements IStorage {
       
       const activityId = this.activityIdCounter++;
       const activity: Activity = {
-        ...setupActivity,
         id: activityId,
+        serverId: setupActivity.serverId || null,
+        type: setupActivity.type,
+        description: setupActivity.description,
         createdAt: maintenanceDate
       };
       

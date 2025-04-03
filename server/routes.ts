@@ -10,8 +10,12 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth sistemi kurulumu
+  setupAuth(app);
+  
   // API Routes
   
   // Error handling middleware
@@ -27,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   
   // GET /api/servers - Get all servers
-  app.get("/api/servers", async (_req: Request, res: Response) => {
+  app.get("/api/servers", isAuthenticated, async (_req: Request, res: Response) => {
     try {
       const servers = await storage.getAllServers();
       res.json(servers);
@@ -37,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // GET /api/servers/:id - Get server by ID
-  app.get("/api/servers/:id", async (req: Request, res: Response) => {
+  app.get("/api/servers/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -56,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // GET /api/servers/by-server-id/:serverId - Get server by server ID
-  app.get("/api/servers/by-server-id/:serverId", async (req: Request, res: Response) => {
+  app.get("/api/servers/by-server-id/:serverId", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const serverId = req.params.serverId;
       const server = await storage.getServerByServerId(serverId);
@@ -72,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/servers - Create a new server
-  app.post("/api/servers", async (req: Request, res: Response) => {
+  app.post("/api/servers", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const serverData = insertServerSchema.parse(req.body);
       
@@ -90,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // PUT /api/servers/:id - Update a server
-  app.put("/api/servers/:id", async (req: Request, res: Response) => {
+  app.put("/api/servers/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -112,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // DELETE /api/servers/:id - Delete a server
-  app.delete("/api/servers/:id", async (req: Request, res: Response) => {
+  app.delete("/api/servers/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -131,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // GET /api/servers/:id/notes - Get notes for a server
-  app.get("/api/servers/:id/notes", async (req: Request, res: Response) => {
+  app.get("/api/servers/:id/notes", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -151,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/servers/:id/notes - Add a note to a server
-  app.post("/api/servers/:id/notes", async (req: Request, res: Response) => {
+  app.post("/api/servers/:id/notes", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -184,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // PUT /api/server-notes/:id - Update a note
-  app.put("/api/server-notes/:id", async (req: Request, res: Response) => {
+  app.put("/api/server-notes/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const noteId = parseInt(req.params.id);
       if (isNaN(noteId)) {
@@ -218,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // GET /api/servers/:id/transfers - Get transfers for a server
-  app.get("/api/servers/:id/transfers", async (req: Request, res: Response) => {
+  app.get("/api/servers/:id/transfers", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -238,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // GET /api/transfers - Get all transfers
-  app.get("/api/transfers", async (_req: Request, res: Response) => {
+  app.get("/api/transfers", isAuthenticated, async (_req: Request, res: Response) => {
     try {
       const transfers = await storage.getAllTransfers();
       res.json(transfers);
@@ -248,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // POST /api/servers/:id/transfers - Create a transfer for a server
-  app.post("/api/servers/:id/transfers", async (req: Request, res: Response) => {
+  app.post("/api/servers/:id/transfers", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -284,7 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // GET /api/servers/:id/activities - Get activities for a server
-  app.get("/api/servers/:id/activities", async (req: Request, res: Response) => {
+  app.get("/api/servers/:id/activities", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -304,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // GET /api/activities - Get all activities
-  app.get("/api/activities", async (req: Request, res: Response) => {
+  app.get("/api/activities", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const activities = await storage.getAllActivities(limit);
@@ -315,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // GET /api/stats - Get dashboard statistics
-  app.get("/api/stats", async (_req: Request, res: Response) => {
+  app.get("/api/stats", isAuthenticated, async (_req: Request, res: Response) => {
     try {
       const stats = await storage.getServerStats();
       res.json(stats);

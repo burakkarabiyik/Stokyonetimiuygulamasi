@@ -40,6 +40,15 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name"),
+  role: text("role").default("user").notNull(), // "admin", "user"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Schemas
 export const insertServerSchema = createInsertSchema(servers)
   .omit({ id: true, createdAt: true });
@@ -51,6 +60,9 @@ export const insertTransferSchema = createInsertSchema(serverTransfers)
   .omit({ id: true, createdAt: true });
 
 export const insertActivitySchema = createInsertSchema(activities)
+  .omit({ id: true, createdAt: true });
+  
+export const insertUserSchema = createInsertSchema(users)
   .omit({ id: true, createdAt: true });
 
 // Types
@@ -65,6 +77,9 @@ export type InsertServerTransfer = z.infer<typeof insertTransferSchema>;
 
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
 // Enums for type safety
 export enum ServerStatus {
@@ -85,4 +100,9 @@ export enum ActivityType {
   EDIT = "edit",                // For editing server information
   STATUS = "status",            // For status changes
   DELETE = "delete"
+}
+
+export enum UserRole {
+  ADMIN = "admin",
+  USER = "user"
 }
