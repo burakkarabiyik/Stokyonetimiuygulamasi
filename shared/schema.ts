@@ -40,6 +40,16 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const locations = pgTable("locations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  address: text("address"),
+  type: text("type").notNull(), // "depot", "office", "field"
+  capacity: integer("capacity").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -61,6 +71,9 @@ export const insertTransferSchema = createInsertSchema(serverTransfers)
 
 export const insertActivitySchema = createInsertSchema(activities)
   .omit({ id: true, createdAt: true });
+
+export const insertLocationSchema = createInsertSchema(locations)
+  .omit({ id: true, createdAt: true });
   
 export const insertUserSchema = createInsertSchema(users)
   .omit({ id: true, createdAt: true });
@@ -77,6 +90,9 @@ export type InsertServerTransfer = z.infer<typeof insertTransferSchema>;
 
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -105,4 +121,10 @@ export enum ActivityType {
 export enum UserRole {
   ADMIN = "admin",
   USER = "user"
+}
+
+export enum LocationType {
+  DEPOT = "depot",     // Depo
+  OFFICE = "office",   // Ofis
+  FIELD = "field"      // Saha
 }

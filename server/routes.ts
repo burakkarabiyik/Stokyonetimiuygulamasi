@@ -5,6 +5,7 @@ import {
   insertServerSchema, 
   insertNoteSchema, 
   insertTransferSchema,
+  insertLocationSchema,
   ServerStatus,
   ActivityType
 } from "@shared/schema";
@@ -323,6 +324,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const stats = await storage.getServerStats();
       res.json(stats);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  // LOCATIONS API
+
+  // GET /api/locations - Get all locations
+  app.get("/api/locations", isAuthenticated, async (_req: Request, res: Response) => {
+    try {
+      const locations = await storage.getAllLocations();
+      res.json(locations);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  // GET /api/locations/:id - Get location by ID
+  app.get("/api/locations/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const location = await storage.getLocationById(id);
+      if (!location) {
+        return res.status(404).json({ error: "Lokasyon bulunamadı" });
+      }
+      
+      res.json(location);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  // POST /api/locations - Create a new location
+  app.post("/api/locations", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const locationData = insertLocationSchema.parse(req.body);
+      
+      // Check if location name already exists
+      const locations = await storage.getAllLocations();
+      const existingLocation = locations.find(loc => loc.name === locationData.name);
+      
+      if (existingLocation) {
+        return res.status(400).json({ error: "Bu lokasyon adı zaten kullanımda" });
+      }
+      
+      const location = await storage.createLocation(locationData);
+      res.status(201).json(location);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  // PUT /api/locations/:id - Update a location
+  app.put("/api/locations/:id", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      // Partial validation
+      const locationData = insertLocationSchema.partial().parse(req.body);
+      
+      // If name is changing, check for duplicates
+      if (locationData.name) {
+        const locations = await storage.getAllLocations();
+        const existingLocation = locations.find(
+          loc => loc.name === locationData.name && loc.id !== id
+        );
+        
+        if (existingLocation) {
+          return res.status(400).json({ error: "Bu lokasyon adı zaten kullanımda" });
+        }
+      }
+      
+      const updatedLocation = await storage.updateLocation(id, locationData);
+      if (!updatedLocation) {
+        return res.status(404).json({ error: "Lokasyon bulunamadı" });
+      }
+      
+      res.json(updatedLocation);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  // DELETE /api/locations/:id - Delete a location
+  app.delete("/api/locations/:id", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      // Attempt to delete the location
+      const deleted = await storage.deleteLocation(id);
+      
+      if (!deleted) {
+        return res.status(400).json({ 
+          error: "Lokasyon silinemedi. Lokasyon kullanımda olabilir veya bulunamadı." 
+        });
+      }
+      
+      res.status(204).end();
     } catch (err) {
       handleError(err, res);
     }

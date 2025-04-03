@@ -8,7 +8,10 @@ import {
   Activity, 
   InsertActivity,
   ServerStatus,
-  ActivityType
+  ActivityType,
+  Location,
+  InsertLocation,
+  LocationType
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -25,6 +28,13 @@ export interface IStorage {
   getServerNotes(serverId: number): Promise<ServerNote[]>;
   addServerNote(note: InsertServerNote): Promise<ServerNote>;
   updateNote(id: number, noteUpdate: { note: string }): Promise<ServerNote | undefined>;
+  
+  // Location operations
+  getAllLocations(): Promise<Location[]>;
+  getLocationById(id: number): Promise<Location | undefined>;
+  createLocation(location: InsertLocation): Promise<Location>;
+  updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
+  deleteLocation(id: number): Promise<boolean>;
   
   // Transfer operations
   getServerTransfers(serverId: number): Promise<ServerTransfer[]>;
@@ -51,20 +61,24 @@ export class MemStorage implements IStorage {
   private serverNotes: Map<number, ServerNote[]>;
   private serverTransfers: Map<number, ServerTransfer[]>;
   private activities: Activity[];
+  private locations: Map<number, Location>;
   private serverIdCounter: number;
   private noteIdCounter: number;
   private transferIdCounter: number;
   private activityIdCounter: number;
+  private locationIdCounter: number;
 
   constructor() {
     this.servers = new Map();
     this.serverNotes = new Map();
     this.serverTransfers = new Map();
     this.activities = [];
+    this.locations = new Map();
     this.serverIdCounter = 1;
     this.noteIdCounter = 1;
     this.transferIdCounter = 1;
     this.activityIdCounter = 1;
+    this.locationIdCounter = 1;
     
     // Initialize with sample data
     this.initSampleData();
@@ -220,6 +234,60 @@ export class MemStorage implements IStorage {
     return undefined;
   }
 
+  // Location operations
+  async getAllLocations(): Promise<Location[]> {
+    return Array.from(this.locations.values());
+  }
+
+  async getLocationById(id: number): Promise<Location | undefined> {
+    return this.locations.get(id);
+  }
+
+  async createLocation(insertLocation: InsertLocation): Promise<Location> {
+    const id = this.locationIdCounter++;
+    const now = new Date();
+    const location: Location = {
+      ...insertLocation,
+      id,
+      createdAt: now
+    };
+    
+    this.locations.set(id, location);
+    
+    // Activity eklenebilir, ancak server ID'si olmadığı için farklı bir yaklaşım gerekebilir.
+    // Bu örnekte activity eklemiyoruz.
+    
+    return location;
+  }
+
+  async updateLocation(id: number, locationUpdate: Partial<InsertLocation>): Promise<Location | undefined> {
+    const existingLocation = this.locations.get(id);
+    
+    if (!existingLocation) {
+      return undefined;
+    }
+    
+    const updatedLocation = {
+      ...existingLocation,
+      ...locationUpdate
+    };
+    
+    this.locations.set(id, updatedLocation);
+    
+    return updatedLocation;
+  }
+
+  async deleteLocation(id: number): Promise<boolean> {
+    // Lokasyonun kullanılıp kullanılmadığını kontrol et
+    const isLocationUsed = Array.from(this.servers.values()).some(server => server.location === this.locations.get(id)?.name);
+    
+    if (isLocationUsed) {
+      return false; // Kullanılan lokasyon silinemez
+    }
+    
+    return this.locations.delete(id);
+  }
+
   // Transfer operations
   async getServerTransfers(serverId: number): Promise<ServerTransfer[]> {
     return this.serverTransfers.get(serverId) || [];
@@ -319,6 +387,47 @@ export class MemStorage implements IStorage {
   
   // Initialize with sample data
   private initSampleData() {
+    // Örnek lokasyon verileri
+    const locations: InsertLocation[] = [
+      {
+        name: "Ankara Depo",
+        address: "Ankara Çankaya, Merkez Cad. No:15",
+        type: LocationType.DEPOT,
+        capacity: 50
+      },
+      {
+        name: "İzmir Depo",
+        address: "İzmir Karşıyaka, Liman Sok. No:8",
+        type: LocationType.DEPOT,
+        capacity: 30
+      },
+      {
+        name: "İstanbul Merkez",
+        address: "İstanbul Levent, Büyükdere Cad. No:122",
+        type: LocationType.OFFICE,
+        capacity: 10
+      },
+      {
+        name: "Adana Saha Ofisi",
+        address: "Adana Seyhan, Atatürk Cad. No:45",
+        type: LocationType.FIELD,
+        capacity: 5
+      }
+    ];
+    
+    // Lokasyonları ekle
+    locations.forEach(location => {
+      const id = this.locationIdCounter++;
+      const now = new Date();
+      const createdAt = new Date(now.getTime() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000); // Random date within last 30 days
+      
+      this.locations.set(id, {
+        ...location,
+        id,
+        createdAt
+      });
+    });
+    
     const servers: InsertServer[] = [
       {
         serverId: "SRV-2023-091",
@@ -586,6 +695,62 @@ export class PostgresStorage implements IStorage {
     });
     
     return updatedNote;
+  }
+
+  // Location operations
+  async getAllLocations(): Promise<Location[]> {
+    const { db } = await import('./database');
+    return await db.select().from(schema.locations).orderBy(schema.locations.name);
+  }
+
+  async getLocationById(id: number): Promise<Location | undefined> {
+    const { db } = await import('./database');
+    const results = await db.select().from(schema.locations).where(
+      eq(schema.locations.id, id)
+    ).limit(1);
+    return results[0];
+  }
+
+  async createLocation(location: InsertLocation): Promise<Location> {
+    const { db } = await import('./database');
+    const result = await db.insert(schema.locations).values(location).returning();
+    return result[0];
+  }
+
+  async updateLocation(id: number, locationUpdate: Partial<InsertLocation>): Promise<Location | undefined> {
+    const { db } = await import('./database');
+    const existingLocation = await this.getLocationById(id);
+    
+    if (!existingLocation) {
+      return undefined;
+    }
+    
+    const result = await db.update(schema.locations)
+      .set(locationUpdate)
+      .where(eq(schema.locations.id, id))
+      .returning();
+    
+    return result[0];
+  }
+
+  async deleteLocation(id: number): Promise<boolean> {
+    const { db } = await import('./database');
+    
+    // Lokasyonun kullanılıp kullanılmadığını kontrol et
+    const location = await this.getLocationById(id);
+    if (!location) {
+      return false;
+    }
+    
+    const servers = await this.getAllServers();
+    const isLocationUsed = servers.some(server => server.location === location.name);
+    
+    if (isLocationUsed) {
+      return false; // Kullanılan lokasyon silinemez
+    }
+    
+    await db.delete(schema.locations).where(eq(schema.locations.id, id));
+    return true;
   }
 
   async getServerTransfers(serverId: number): Promise<ServerTransfer[]> {
