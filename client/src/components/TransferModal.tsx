@@ -18,15 +18,24 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
   const [formData, setFormData] = useState({
     targetLocation: server.location === "Ankara Depo" ? "İstanbul Merkez" : server.location === "İstanbul Merkez" ? "İzmir Depo" : "Ankara Depo",
     transferDate: today,
-    notes: ""
+    notes: "",
+    ipAddress: "",
+    password: ""
   });
   
   const transferMutation = useMutation({
     mutationFn: async () => {
+      // Oluşturulacak not
+      let serverNote = `IP Adresi: ${formData.ipAddress}\nŞifre: ${formData.password}`;
+      if (formData.notes.trim()) {
+        serverNote += `\n\n${formData.notes}`;
+      }
+
+      // Transfer kaydını oluştur
       await apiRequest('POST', `/api/servers/${server.id}/transfers`, {
         toLocation: formData.targetLocation,
         transferDate: new Date(formData.transferDate),
-        notes: formData.notes
+        notes: serverNote
       });
     },
     onSuccess: () => {
@@ -171,6 +180,30 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                   />
                 </div>
                 <div>
+                  <label htmlFor="ipAddress" className="block text-sm font-medium text-gray-700">Sunucu IP Adresi</label>
+                  <input
+                    type="text" 
+                    name="ipAddress" 
+                    id="ipAddress" 
+                    value={formData.ipAddress}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    placeholder="192.168.1.100" 
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Sunucu Şifresi</label>
+                  <input
+                    type="text" 
+                    name="password" 
+                    id="password" 
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    placeholder="Erişim şifresi" 
+                  />
+                </div>
+                <div>
                   <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Transfer Notları</label>
                   <textarea 
                     name="notes" 
@@ -179,7 +212,7 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                     value={formData.notes}
                     onChange={handleChange}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
-                    placeholder="Transfer ile ilgili notlar..."
+                    placeholder="Transfer ile ilgili diğer notlar..."
                   ></textarea>
                 </div>
                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">

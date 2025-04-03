@@ -71,8 +71,10 @@ export const getStatusLabel = (status: string): string => {
       return 'Aktif';
     case 'transit':
       return 'Transfer Sürecinde';
-    case 'maintenance':
-      return 'Bakımda';
+    case 'setup':
+      return 'Kurulumda';
+    case 'maintenance': // Keep backwards compatibility
+      return 'Kurulumda';  
     default:
       return status;
   }

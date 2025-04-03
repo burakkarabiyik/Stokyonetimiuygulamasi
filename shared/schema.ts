@@ -8,7 +8,7 @@ export const servers = pgTable("servers", {
   model: text("model").notNull(),
   specs: text("specs").notNull(),
   location: text("location").notNull(),
-  status: text("status").notNull(), // "active", "transit", "maintenance"
+  status: text("status").notNull(), // "active", "transit", "setup"
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -67,13 +67,14 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export enum ServerStatus {
   ACTIVE = "active",
   TRANSIT = "transit",
-  MAINTENANCE = "maintenance"
+  SETUP = "setup"     // "maintenance" yerine "setup" (kurulumda) kullanıyoruz
 }
 
 export enum ActivityType {
   ADD = "add",
   TRANSFER = "transfer",
   NOTE = "note",
-  MAINTENANCE = "maintenance",
+  MAINTENANCE = "maintenance",  // We keep "maintenance" in activities for backward compatibility
+  SETUP = "setup",              // But add a new SETUP type for new activities
   DELETE = "delete"
 }

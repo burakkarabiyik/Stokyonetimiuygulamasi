@@ -211,7 +211,7 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
                   >
                     <option value={ServerStatus.ACTIVE}>Aktif</option>
                     <option value={ServerStatus.TRANSIT}>Transfer Sürecinde</option>
-                    <option value={ServerStatus.MAINTENANCE}>Bakımda</option>
+                    <option value={ServerStatus.SETUP}>Kurulumda</option>
                   </select>
                 </div>
                 <div>

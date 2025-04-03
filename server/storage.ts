@@ -40,7 +40,7 @@ export interface IStorage {
     total: number;
     active: number;
     transit: number;
-    maintenance: number;
+    setup: number; // Changed from maintenance to setup
   }>;
 }
 
@@ -123,7 +123,7 @@ export class MemStorage implements IStorage {
     if (serverUpdate.status && serverUpdate.status !== existingServer.status) {
       this.addActivity({
         serverId: id,
-        type: ActivityType.MAINTENANCE,
+        type: ActivityType.SETUP,
         description: `Sunucu durumu değiştirildi: ${existingServer.status} -> ${serverUpdate.status}`
       });
     }
@@ -260,14 +260,14 @@ export class MemStorage implements IStorage {
   }
 
   // Dashboard statistics
-  async getServerStats(): Promise<{ total: number; active: number; transit: number; maintenance: number; }> {
+  async getServerStats(): Promise<{ total: number; active: number; transit: number; setup: number; }> {
     const servers = Array.from(this.servers.values());
     
     return {
       total: servers.length,
       active: servers.filter(s => s.status === ServerStatus.ACTIVE).length,
       transit: servers.filter(s => s.status === ServerStatus.TRANSIT).length,
-      maintenance: servers.filter(s => s.status === ServerStatus.MAINTENANCE).length
+      setup: servers.filter(s => s.status === ServerStatus.SETUP).length
     };
   }
   
@@ -300,7 +300,7 @@ export class MemStorage implements IStorage {
         model: "Dell PowerEdge R640",
         specs: "2x Intel Xeon Gold 5218, 96GB RAM, 4x 960GB SSD",
         location: "Ankara Depo",
-        status: ServerStatus.MAINTENANCE
+        status: ServerStatus.SETUP
       }
     ];
     
@@ -365,8 +365,8 @@ export class MemStorage implements IStorage {
       
       this.addActivity({
         serverId: maintenanceServer.id,
-        type: ActivityType.MAINTENANCE,
-        description: `SRV-2023-088 sunucusu bakıma alındı`,
+        type: ActivityType.SETUP,
+        description: `SRV-2023-088 sunucusu kuruluma alındı`,
         createdAt: maintenanceDate
       });
     }
