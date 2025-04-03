@@ -1,6 +1,7 @@
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "./database";
-import { servers, ServerStatus, InsertServer, activities, ActivityType } from "@shared/schema";
+import { servers, ServerStatus, InsertServer, activities, ActivityType, users, UserRole } from "@shared/schema";
+import { hashPassword } from "./auth";
 
 // Veritabanı tablolarını oluştur
 export async function runMigrations() {
@@ -15,11 +16,49 @@ export async function runMigrations() {
   }
 }
 
+// Default admin kullanıcısını oluşturma
+export async function createDefaultAdmin() {
+  console.log("Default admin kullanıcısı kontrol ediliyor...");
+  try {
+    // Kullanıcı sayısını kontrol et
+    const existingUsers = await db.select().from(users);
+    
+    if (existingUsers.length > 0) {
+      console.log("Veritabanında zaten kullanıcılar mevcut, admin oluşturulmayacak");
+      return;
+    }
+    
+    // Default admin kullanıcısı oluştur
+    const defaultAdminUsername = "admin";
+    const defaultAdminPassword = "admin123"; // İlk girişte değiştirilmesi gerektiğini kullanıcıya hatırlat
+    
+    // Şifreyi hashle
+    const hashedPassword = await hashPassword(defaultAdminPassword);
+    
+    // Admin kullanıcısını oluştur
+    await db.insert(users).values({
+      username: defaultAdminUsername,
+      password: hashedPassword,
+      name: "Sistem Yöneticisi",
+      role: UserRole.ADMIN
+    });
+    
+    console.log("Default admin kullanıcısı başarıyla oluşturuldu");
+    console.log("Kullanıcı adı: admin, Şifre: admin123");
+    console.log("Güvenlik için ilk girişte şifrenizi değiştirmeniz önerilir");
+  } catch (error) {
+    console.error("Admin oluşturma hatası:", error);
+  }
+}
+
 // Örnek veri ekleme - sadece boş bir veritabanında çalıştırılmalı
 export async function seedDatabase() {
   console.log("Veritabanına örnek veriler ekleniyor...");
   try {
-    // Önce sunucu sayısını kontrol et
+    // Önce default admin kullanıcısını oluştur
+    await createDefaultAdmin();
+    
+    // Sunucu sayısını kontrol et
     const existingServers = await db.select().from(servers);
     
     if (existingServers.length > 0) {

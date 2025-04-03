@@ -106,10 +106,15 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Kullanıcı kayıt endpoint'i
+  // Kullanıcı kayıt endpoint'i - Sadece admin kullanıcılar yeni kullanıcı ekleyebilir
   app.post("/api/register", async (req, res, next) => {
     try {
-      const { username, password, name } = req.body;
+      // Admin kontrolü
+      if (!req.isAuthenticated() || req.user.role !== "admin") {
+        return res.status(403).json({ error: "Sadece admin kullanıcılar yeni kullanıcı ekleyebilir" });
+      }
+
+      const { username, password, name, role = "user" } = req.body;
       
       // Kullanıcı adı kontrolü
       const existingUser = await getUserByUsername(username);
@@ -117,22 +122,19 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Bu kullanıcı adı zaten kullanımda" });
       }
 
-      // İlk kullanıcıyı admin olarak ayarla
-      const allUsers = await db.select().from(users);
-      const role = allUsers.length === 0 ? "admin" : "user";
+      // Sadece geçerli roller kabul edilir
+      if (role !== "admin" && role !== "user") {
+        return res.status(400).json({ error: "Geçersiz rol. Rol 'admin' veya 'user' olmalıdır" });
+      }
 
       // Yeni kullanıcı oluştur
       const user = await createUser(username, password, name, role);
 
-      // Otomatik giriş
-      req.login(user, (err) => {
-        if (err) return next(err);
-        return res.status(201).json({
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          role: user.role
-        });
+      return res.status(201).json({
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role
       });
     } catch (error) {
       console.error("Kayıt hatası:", error);
