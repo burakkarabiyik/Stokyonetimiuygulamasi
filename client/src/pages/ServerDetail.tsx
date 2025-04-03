@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Server, Activity, ServerNote } from "@shared/schema";
+import { Server, Activity, ServerNote, ServerStatus } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import TransferModal from "@/components/TransferModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
@@ -98,22 +98,28 @@ export default function ServerDetail() {
     if (!status) return null;
     
     switch(status) {
-      case 'active':
+      case ServerStatus.ACTIVE:
         return (
           <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
             Aktif
           </span>
         );
-      case 'transit':
+      case ServerStatus.TRANSIT:
         return (
           <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
             Transfer Sürecinde
           </span>
         );
-      case 'maintenance':
+      case ServerStatus.SETUP:
         return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-            Bakımda
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+            Kurulumda
+          </span>
+        );
+      case ServerStatus.FIELD:
+        return (
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+            Sahada Kullanımda
           </span>
         );
       default:
@@ -238,22 +244,77 @@ export default function ServerDetail() {
               </div>
             </dl>
           </div>
-          <div className="px-4 py-4 sm:px-6 bg-gray-50 border-t border-gray-200 flex space-x-3">
+          <div className="px-4 py-4 sm:px-6 bg-gray-50 border-t border-gray-200 flex flex-wrap gap-2">
             <button 
               onClick={() => setTransferModalOpen(true)} 
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
               Transfer Et
             </button>
+            
+            {server.status === ServerStatus.ACTIVE && (
+              <button 
+                onClick={() => {
+                  // Kurulum durumuna al
+                  const setupMutation = async () => {
+                    await apiRequest('PUT', `/api/servers/${id}`, {
+                      status: ServerStatus.SETUP
+                    });
+                    
+                    await apiRequest('POST', `/api/servers/${id}/notes`, {
+                      note: "Kurulum başlatıldı."
+                    });
+                    
+                    // Yenileme
+                    queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}`] });
+                    queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/activities`] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/servers'] });
+                    queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+                    
+                    toast({
+                      title: "Başarılı",
+                      description: "Sunucu kurulum durumuna alındı."
+                    });
+                    
+                    // Kurulum sayfasına yönlendir
+                    navigate(`/servers/${id}/setup`);
+                  };
+                  
+                  setupMutation();
+                }}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Kurulum Başlat
+              </button>
+            )}
+            
+            {server.status === ServerStatus.SETUP && (
+              <button 
+                onClick={() => navigate(`/servers/${id}/setup`)}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Kuruluma Devam Et
+              </button>
+            )}
+            
             <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
               <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
               Düzenle
             </button>
+            
             <button 
               onClick={() => setConfirmDeleteModalOpen(true)}
               className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
