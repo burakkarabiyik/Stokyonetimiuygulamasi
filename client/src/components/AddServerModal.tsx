@@ -17,7 +17,7 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
     model: "",
     specs: "",
     location: "Ankara Depo",
-    status: ServerStatus.ACTIVE, // Aktif, yani depoda
+    status: ServerStatus.INACTIVE, // Pasif olarak başlatılır, daha sonra aktifleştirilir
     notes: "",
     quantity: 1
   });
@@ -75,7 +75,7 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
         model: "",
         specs: "",
         location: "Ankara Depo",
-        status: ServerStatus.ACTIVE,
+        status: ServerStatus.INACTIVE,
         notes: "",
         quantity: 1
       });
@@ -240,9 +240,12 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
                     onChange={handleChange}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
                   >
+                    <option value={ServerStatus.INACTIVE}>Pasif</option>
                     <option value={ServerStatus.ACTIVE}>Aktif</option>
                     <option value={ServerStatus.TRANSIT}>Transfer Sürecinde</option>
                     <option value={ServerStatus.SETUP}>Kurulumda</option>
+                    <option value={ServerStatus.READY}>Gönderilebilir</option>
+                    <option value={ServerStatus.FIELD}>Sahada Kullanımda</option>
                   </select>
                 </div>
                 <div>

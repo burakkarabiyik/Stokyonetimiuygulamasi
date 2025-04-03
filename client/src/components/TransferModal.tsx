@@ -19,7 +19,8 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
     targetLocation: "",
     transferDate: today,
     notes: "",
-    markAsFieldUse: false
+    markAsFieldUse: false,
+    markAsSetup: server.status === "inactive" // Pasif sunucular için varsayılan olarak seçili
   });
   
   const transferMutation = useMutation({
@@ -34,6 +35,18 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
         notes: serverNote,
         markAsFieldUse: formData.markAsFieldUse // Sahada kullanımda olarak işaretlenip işaretlenmeyeceği
       });
+      
+      // Eğer sunucu pasif durumda ise ve kuruluma alınması işaretlendi ise durumu güncelle
+      if (server.status === "inactive" && formData.markAsSetup) {
+        await apiRequest("PUT", `/api/servers/${server.id}`, {
+          status: "setup" // Kurulumda durumuna güncelle
+        });
+        
+        // Aktivite ekle
+        await apiRequest("POST", `/api/servers/${server.id}/notes`, {
+          note: "Pasif durumdan kuruluma alındı."
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/servers'] });
@@ -43,9 +56,16 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
       queryClient.invalidateQueries({ queryKey: ['/api/activities'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       
+      let successMessage = "Transfer işlemi başlatıldı.";
+      
+      // Eğer pasif sunucu kuruluma alındıysa başarı mesajını güncelle
+      if (server.status === "inactive" && formData.markAsSetup) {
+        successMessage = "Transfer işlemi başlatıldı ve sunucu kuruluma alındı.";
+      }
+      
       toast({
         title: "Başarılı",
-        description: "Transfer işlemi başlatıldı.",
+        description: successMessage,
       });
       
       onClose();
@@ -190,6 +210,22 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                     placeholder="Transfer ile ilgili diğer notlar..."
                   ></textarea>
                 </div>
+                {server.status === "inactive" && (
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="markAsSetup"
+                      id="markAsSetup"
+                      checked={formData.markAsSetup}
+                      onChange={handleCheckboxChange}
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="markAsSetup" className="ml-2 block text-sm text-gray-700">
+                      Kuruluma alınacak (Pasif durumdan kuruluma)
+                    </label>
+                  </div>
+                )}
+
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -197,10 +233,11 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                     id="markAsFieldUse"
                     checked={formData.markAsFieldUse}
                     onChange={handleCheckboxChange}
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    disabled={server.status !== "ready"} 
+                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded disabled:opacity-50"
                   />
-                  <label htmlFor="markAsFieldUse" className="ml-2 block text-sm text-gray-700">
-                    Sahada Kullanımda olarak işaretle
+                  <label htmlFor="markAsFieldUse" className="ml-2 block text-sm text-gray-700 disabled:opacity-50">
+                    Sahada Kullanımda olarak işaretle {server.status !== "ready" && "(Sadece 'Gönderilebilir' durumdaki sunucular için)"}
                   </label>
                 </div>
                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
