@@ -20,7 +20,8 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
     transferDate: today,
     notes: "",
     ipAddress: "",
-    password: ""
+    password: "",
+    markAsFieldUse: false
   });
   
   const transferMutation = useMutation({
@@ -35,7 +36,8 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
       await apiRequest('POST', `/api/servers/${server.id}/transfers`, {
         toLocation: formData.targetLocation,
         transferDate: formData.transferDate, // String olarak gönderiyoruz, API'de dönüştürülecek
-        notes: serverNote
+        notes: serverNote,
+        markAsFieldUse: formData.markAsFieldUse // Sahada kullanımda olarak işaretlenip işaretlenmeyeceği
       });
     },
     onSuccess: () => {
@@ -90,6 +92,11 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
   
   // Artık önceden tanımlanmış lokasyonlara ihtiyacımız yok, kullanıcı istediği metni girebilir
@@ -211,11 +218,24 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                     placeholder="Transfer ile ilgili diğer notlar..."
                   ></textarea>
                 </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="markAsFieldUse"
+                    id="markAsFieldUse"
+                    checked={formData.markAsFieldUse}
+                    onChange={handleCheckboxChange}
+                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="markAsFieldUse" className="ml-2 block text-sm text-gray-700">
+                    Sahada Kullanımda olarak işaretle
+                  </label>
+                </div>
                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                   <button 
                     type="submit" 
                     disabled={transferMutation.isPending}
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {transferMutation.isPending ? "İşleniyor..." : "Transfer Başlat"}
                   </button>

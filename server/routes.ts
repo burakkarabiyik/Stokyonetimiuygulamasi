@@ -221,8 +221,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transfer = await storage.createTransfer(transferData);
       
       // Update server status and location
+      // Eğer markAsFieldUse true ise durumu FIELD yap, yoksa TRANSIT
+      const newStatus = req.body.markAsFieldUse ? ServerStatus.FIELD : ServerStatus.TRANSIT;
+      
       await storage.updateServer(id, {
-        status: ServerStatus.TRANSIT,
+        status: newStatus,
         location: transferData.toLocation
       });
       

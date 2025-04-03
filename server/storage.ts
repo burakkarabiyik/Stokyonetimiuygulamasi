@@ -572,7 +572,7 @@ export class PostgresStorage implements IStorage {
     return result[0];
   }
 
-  async getServerStats(): Promise<{ total: number; active: number; transit: number; setup: number; }> {
+  async getServerStats(): Promise<{ total: number; active: number; transit: number; setup: number; field: number; }> {
     const { db } = await import('./database');
     const servers = await this.getAllServers();
     
@@ -580,7 +580,8 @@ export class PostgresStorage implements IStorage {
       total: servers.length,
       active: servers.filter(s => s.status === ServerStatus.ACTIVE).length,
       transit: servers.filter(s => s.status === ServerStatus.TRANSIT).length,
-      setup: servers.filter(s => s.status === ServerStatus.SETUP).length
+      setup: servers.filter(s => s.status === ServerStatus.SETUP).length,
+      field: servers.filter(s => s.status === ServerStatus.FIELD).length
     };
   }
 }

@@ -65,9 +65,10 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
 // Enums for type safety
 export enum ServerStatus {
-  ACTIVE = "active",
-  TRANSIT = "transit",
-  SETUP = "setup"     // "maintenance" yerine "setup" (kurulumda) kullanıyoruz
+  ACTIVE = "active",       // Aktif (Depoda)
+  TRANSIT = "transit",     // Transfer Sürecinde
+  SETUP = "setup",         // Kurulumda
+  FIELD = "field"          // Sahada Kullanımda
 }
 
 export enum ActivityType {
