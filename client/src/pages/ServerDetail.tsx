@@ -27,6 +27,11 @@ export default function ServerDetail() {
     enabled: !!server,
   });
   
+  const { data: notes } = useQuery<ServerNote[]>({
+    queryKey: [`/api/servers/${id}/notes`],
+    enabled: !!server,
+  });
+  
   const addNoteMutation = useMutation({
     mutationFn: async (note: string) => {
       await apiRequest('POST', `/api/servers/${id}/notes`, { note });
@@ -342,6 +347,29 @@ export default function ServerDetail() {
 
         {/* Notes and Activity */}
         <div className="md:col-span-1 space-y-6">
+          {/* Server Notes List */}
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <h3 className="text-lg font-medium leading-6 text-gray-900">Sunucu Notları</h3>
+            </div>
+            <div className="px-4 py-5 sm:p-6">
+              {notes?.length ? (
+                <div className="space-y-4">
+                  {notes.map((note) => (
+                    <div key={note.id} className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
+                      <p className="text-sm text-gray-900 whitespace-pre-wrap">{note.note}</p>
+                      <div className="mt-1 text-xs text-gray-500">
+                        {formatDate(note.createdAt)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">Henüz not bulunmuyor</div>
+              )}
+            </div>
+          </div>
+          
           {/* Add Note */}
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
