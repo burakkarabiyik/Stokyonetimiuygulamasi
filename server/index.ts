@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { runMigrations, seedDatabase } from "./migrate";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,16 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Veritabanı tablolarını oluştur ve örnek verileri ekle
+  try {
+    const migrationSuccess = await runMigrations();
+    if (migrationSuccess) {
+      await seedDatabase();
+    }
+  } catch (err) {
+    console.error("Veritabanı hazırlama hatası:", err);
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

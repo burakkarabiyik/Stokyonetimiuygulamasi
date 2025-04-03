@@ -8,7 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 export default function Dashboard() {
   const { toast } = useToast();
   
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<{
+    total: number;
+    active: number;
+    transit: number;
+    setup: number;
+  }>({
     queryKey: ['/api/stats'],
   });
   
