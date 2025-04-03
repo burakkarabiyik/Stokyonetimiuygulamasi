@@ -7,6 +7,8 @@ import { Server, Activity, ServerNote, ServerStatus } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import TransferModal from "@/components/TransferModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
+import EditServerModal from "@/components/EditServerModal";
+import EditNoteModal from "@/components/EditNoteModal";
 import { formatDate } from "@/lib/utils";
 
 export default function ServerDetail() {
@@ -17,6 +19,9 @@ export default function ServerDetail() {
   const [noteText, setNoteText] = useState("");
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState(false);
+  const [editServerModalOpen, setEditServerModalOpen] = useState(false);
+  const [editNoteModalOpen, setEditNoteModalOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<ServerNote | null>(null);
   
   const { data: server, isLoading, error } = useQuery<Server>({
     queryKey: [`/api/servers/${id}`],
@@ -326,16 +331,12 @@ export default function ServerDetail() {
               </button>
             )}
             
-            {/* Düzenle butonu Gönderilebilir veya Sahada Kullanımda durumundaki sunucularda gözüksün */}
-            {(server.status === ServerStatus.FIELD || server.status === ServerStatus.READY) && (
+            {/* Düzenle butonu: Gönderilebilir, Sahada Kullanımda veya Transfer Sürecinde durumundaki sunucularda gözüksün */}
+            {(server.status === ServerStatus.FIELD || 
+              server.status === ServerStatus.READY || 
+              server.status === ServerStatus.TRANSIT) && (
               <button 
-                onClick={() => {
-                  // Düzenleme modalı açılacak - şimdilik bir bildirim gösterelim
-                  toast({
-                    title: "Bilgi",
-                    description: "Düzenleme özelliği şu anda yapım aşamasındadır."
-                  });
-                }}
+                onClick={() => setEditServerModalOpen(true)}
                 className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -369,7 +370,20 @@ export default function ServerDetail() {
                 <div className="space-y-4">
                   {notes.map((note) => (
                     <div key={note.id} className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
-                      <p className="text-sm text-gray-900 whitespace-pre-wrap">{note.note}</p>
+                      <div className="flex justify-between">
+                        <p className="text-sm text-gray-900 whitespace-pre-wrap">{note.note}</p>
+                        <button 
+                          onClick={() => {
+                            setSelectedNote(note);
+                            setEditNoteModalOpen(true);
+                          }}
+                          className="ml-2 text-gray-500 hover:text-blue-600"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </div>
                       <div className="mt-1 text-xs text-gray-500">
                         {formatDate(note.createdAt)}
                       </div>
@@ -470,6 +484,35 @@ export default function ServerDetail() {
         onConfirm={handleDelete}
         isDeleting={deleteServerMutation.isPending}
       />
+      
+      {/* Sunucu Düzenleme Modalı */}
+      {server && (
+        <EditServerModal
+          isOpen={editServerModalOpen}
+          onClose={() => setEditServerModalOpen(false)}
+          server={server}
+          onServerUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/activities`] });
+          }}
+        />
+      )}
+      
+      {/* Not Düzenleme Modalı */}
+      {selectedNote && (
+        <EditNoteModal
+          isOpen={editNoteModalOpen}
+          onClose={() => {
+            setEditNoteModalOpen(false);
+            setSelectedNote(null);
+          }}
+          note={selectedNote}
+          onNoteUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/notes`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/activities`] });
+          }}
+        />
+      )}
     </div>
   );
 }

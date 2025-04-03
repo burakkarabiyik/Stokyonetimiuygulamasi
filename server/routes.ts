@@ -169,7 +169,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const note = await storage.addServerNote(noteData);
+      
+      // Aktivite ekle
+      await storage.addActivity({
+        type: ActivityType.NOTE,
+        description: `Not eklendi: ${req.body.note.length > 30 ? req.body.note.substring(0, 30) + '...' : req.body.note}`,
+        serverId: id
+      });
+      
       res.status(201).json(note);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // PUT /api/server-notes/:id - Update a note
+  app.put("/api/server-notes/:id", async (req: Request, res: Response) => {
+    try {
+      const noteId = parseInt(req.params.id);
+      if (isNaN(noteId)) {
+        return res.status(400).json({ error: "Geçersiz not ID" });
+      }
+      
+      // Var olan notu kontrol et
+      const notes = await storage.getServerNotes(0); // Tüm notları alır
+      const existingNote = notes.find(note => note.id === noteId);
+      
+      if (!existingNote) {
+        return res.status(404).json({ error: "Not bulunamadı" });
+      }
+      
+      // Notu güncelle
+      const updatedNote = await storage.updateNote(noteId, {
+        note: req.body.note
+      });
+      
+      // Not güncellemesi aktivitesi ekle
+      await storage.addActivity({
+        type: ActivityType.NOTE,
+        description: `Not güncellendi: ${req.body.note.length > 30 ? req.body.note.substring(0, 30) + '...' : req.body.note}`,
+        serverId: existingNote.serverId
+      });
+      
+      res.status(200).json(updatedNote);
     } catch (err) {
       handleError(err, res);
     }

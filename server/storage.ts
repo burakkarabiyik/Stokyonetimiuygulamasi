@@ -24,6 +24,7 @@ export interface IStorage {
   // Note operations
   getServerNotes(serverId: number): Promise<ServerNote[]>;
   addServerNote(note: InsertServerNote): Promise<ServerNote>;
+  updateNote(id: number, noteUpdate: { note: string }): Promise<ServerNote | undefined>;
   
   // Transfer operations
   getServerTransfers(serverId: number): Promise<ServerTransfer[]>;
@@ -182,6 +183,36 @@ export class MemStorage implements IStorage {
     });
     
     return newNote;
+  }
+  
+  async updateNote(id: number, noteUpdate: { note: string }): Promise<ServerNote | undefined> {
+    // Tüm notları tara
+    for (const [serverId, notes] of this.serverNotes.entries()) {
+      const noteIndex = notes.findIndex(note => note.id === id);
+      
+      if (noteIndex !== -1) {
+        // Notu güncelle
+        const updatedNote = {
+          ...notes[noteIndex],
+          note: noteUpdate.note
+        };
+        
+        notes[noteIndex] = updatedNote;
+        this.serverNotes.set(serverId, notes);
+        
+        // Aktivite ekle
+        const server = this.servers.get(serverId);
+        this.addActivity({
+          serverId: serverId,
+          type: ActivityType.NOTE,
+          description: `Not güncellendi: ${server?.serverId || `ID: ${serverId}`}`
+        });
+        
+        return updatedNote;
+      }
+    }
+    
+    return undefined;
   }
 
   // Transfer operations
@@ -511,6 +542,40 @@ export class PostgresStorage implements IStorage {
     });
     
     return newNote;
+  }
+  
+  async updateNote(id: number, noteUpdate: { note: string }): Promise<ServerNote | undefined> {
+    const { db } = await import('./database');
+    
+    // Önce notu bul
+    const results = await db.select().from(schema.serverNotes).where(eq(schema.serverNotes.id, id)).limit(1);
+    const existingNote = results[0];
+    
+    if (!existingNote) {
+      return undefined;
+    }
+    
+    // Notu güncelle
+    const updatedNotes = await db.update(schema.serverNotes)
+      .set({ note: noteUpdate.note })
+      .where(eq(schema.serverNotes.id, id))
+      .returning();
+    
+    if (updatedNotes.length === 0) {
+      return undefined;
+    }
+    
+    const updatedNote = updatedNotes[0];
+    
+    // Aktivite ekle
+    const server = await this.getServerById(updatedNote.serverId);
+    await this.addActivity({
+      serverId: updatedNote.serverId,
+      type: ActivityType.NOTE,
+      description: `Not güncellendi: ${server?.serverId || `ID: ${updatedNote.serverId}`}`
+    });
+    
+    return updatedNote;
   }
 
   async getServerTransfers(serverId: number): Promise<ServerTransfer[]> {
