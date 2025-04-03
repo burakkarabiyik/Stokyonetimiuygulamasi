@@ -17,7 +17,7 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
     model: "",
     specs: "",
     location: "Ankara Depo",
-    status: ServerStatus.ACTIVE,
+    status: ServerStatus.ACTIVE, // Aktif, yani depoda
     notes: "",
     quantity: 1
   });
