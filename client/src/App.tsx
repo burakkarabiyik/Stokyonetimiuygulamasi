@@ -76,11 +76,12 @@ function AuthenticatedApp() {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Hesabım</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <Link href="/profile">
-                    <DropdownMenuItem className="cursor-pointer">
-                      Profil Ayarları
-                    </DropdownMenuItem>
-                  </Link>
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => window.location.href = "/profile"}
+                  >
+                    Profil Ayarları
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="cursor-pointer text-red-600" 
                     onClick={() => logoutMutation.mutate()}

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 
 interface SidebarProps {
   open: boolean;
@@ -102,23 +102,26 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
       <nav className="mt-5 px-2 space-y-1">
         {navItems.map((item) => (
-          <Link key={item.path} href={item.path}>
-            <a 
-              className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
-                isActive(item.path)
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-              onClick={() => {
-                if (window.innerWidth < 768) {
-                  onClose();
-                }
-              }}
-            >
-              <span className="mr-3">{item.icon}</span>
-              {item.name}
-            </a>
-          </Link>
+          <a 
+            key={item.path}
+            href={item.path}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
+              isActive(item.path)
+                ? 'bg-primary-50 text-primary-700'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+            onClick={(e) => {
+              e.preventDefault();
+              window.history.pushState(null, "", item.path);
+              window.dispatchEvent(new Event("popstate"));
+              if (window.innerWidth < 768) {
+                onClose();
+              }
+            }}
+          >
+            <span className="mr-3">{item.icon}</span>
+            {item.name}
+          </a>
         ))}
       </nav>
     </div>
