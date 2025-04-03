@@ -16,7 +16,7 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format for input date
   
   const [formData, setFormData] = useState({
-    targetLocation: server.location === "Ankara Depo" ? "İstanbul Merkez" : server.location === "İstanbul Merkez" ? "İzmir Depo" : "Ankara Depo",
+    targetLocation: "",
     transferDate: today,
     notes: "",
     ipAddress: "",
@@ -92,9 +92,7 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  // Get available locations that are not the current location
-  const availableLocations = ["Ankara Depo", "İstanbul Merkez", "İzmir Depo"]
-    .filter(location => location !== server.location);
+  // Artık önceden tanımlanmış lokasyonlara ihtiyacımız yok, kullanıcı istediği metni girebilir
   
   if (!isOpen) return null;
   
@@ -156,17 +154,15 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                 </div>
                 <div>
                   <label htmlFor="targetLocation" className="block text-sm font-medium text-gray-700">Hedef Konum</label>
-                  <select 
-                    id="targetLocation" 
+                  <input 
+                    type="text" 
                     name="targetLocation" 
+                    id="targetLocation" 
                     value={formData.targetLocation}
                     onChange={handleChange}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-                  >
-                    {availableLocations.map((location, index) => (
-                      <option key={index} value={location}>{location}</option>
-                    ))}
-                  </select>
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    placeholder="Hedef konum giriniz" 
+                  />
                 </div>
                 <div>
                   <label htmlFor="transferDate" className="block text-sm font-medium text-gray-700">Transfer Tarihi</label>
