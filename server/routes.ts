@@ -619,7 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate that the currently signed in user is the one who created the note
       // or is an admin
-      if (!req.isAuthenticated()) {
+      if (!req.user) {
         return res.status(401).json({ error: "Bu işlem için giriş yapmalısınız" });
       }
       
@@ -644,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate that the currently signed in user is the one who created the note
       // or is an admin
-      if (!req.isAuthenticated()) {
+      if (!req.user) {
         return res.status(401).json({ error: "Bu işlem için giriş yapmalısınız" });
       }
       
