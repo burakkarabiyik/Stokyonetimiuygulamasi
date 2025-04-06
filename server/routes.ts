@@ -44,9 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).send('OK');
   });
 
-  // Import and setup authentication
-  const { setupAuth } = await import('./auth');
-  setupAuth(app);
+  // We're using JWT auth instead of session-based auth
+  // const { setupAuth } = await import('./auth');
+  // setupAuth(app);
   
   // Create admin user if not exists
   try {
@@ -65,8 +65,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error creating admin user:', err);
   }
   
-  // Import auth middlewares from auth.ts
-  const { isAuthenticated, isAdmin } = await import('./auth');
+  // Import JWT auth middlewares
+  const { isAuthenticated, isAdmin, setupJwtAuth } = await import('./jwt-auth');
   
   // API Routes
   
@@ -82,24 +82,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(500).json({ error: "Sunucu hatası" });
   };
   
-  // Auth routes
-  app.post('/api/login', passport.authenticate('local'), (req, res) => {
-    res.json(req.user);
-  });
-  
-  app.post('/api/logout', (req, res, next) => {
-    req.logout((err) => {
-      if (err) return next(err);
-      res.sendStatus(200);
-    });
-  });
-  
-  app.get('/api/user', (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ error: 'Oturum açmanız gerekiyor' });
-    }
-    res.json(req.user);
-  });
+  // Setup JWT auth endpoints
+  setupJwtAuth(app);
   
   // User profile and account routes
   app.put('/api/user/profile', isAuthenticated, async (req, res) => {
