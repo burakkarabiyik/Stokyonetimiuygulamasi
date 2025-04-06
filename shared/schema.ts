@@ -16,7 +16,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  fullname: text("fullname"),  // Doğru sütun adıyla eşleştirildi
+  fullname: text("full_name"),  // Veritabanı sütun adıyla eşleştirildi
   email: text("email"),
   role: text("role").default("user").notNull(), // "admin" or "user"
   isActive: boolean("is_active").default(true).notNull(),

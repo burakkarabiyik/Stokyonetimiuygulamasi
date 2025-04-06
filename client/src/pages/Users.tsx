@@ -80,7 +80,7 @@ import { formatDate } from "@/lib/utils";
 const createUserSchema = z.object({
   username: z.string().min(3, "Kullanıcı adı en az 3 karakter olmalıdır"),
   password: z.string().min(6, "Şifre en az 6 karakter olmalıdır"),
-  fullName: z.string().optional(),
+  fullname: z.string().optional(),
   email: z.string().email("Geçerli bir e-posta adresi girin").optional(),
   role: z.enum([UserRole.ADMIN, UserRole.USER]),
 });
@@ -120,7 +120,7 @@ export default function Users() {
     const searchLower = searchQuery.toLowerCase();
     return (
       user.username.toLowerCase().includes(searchLower) ||
-      (user.fullName && user.fullName.toLowerCase().includes(searchLower)) ||
+      (user.fullname && user.fullname.toLowerCase().includes(searchLower)) ||
       (user.email && user.email.toLowerCase().includes(searchLower))
     );
   });
@@ -356,7 +356,7 @@ export default function Users() {
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.username}</TableCell>
-                      <TableCell>{user.fullName || "-"}</TableCell>
+                      <TableCell>{user.fullname || "-"}</TableCell>
                       <TableCell>{user.email || "-"}</TableCell>
                       <TableCell>
                         {user.role === UserRole.ADMIN ? (
@@ -452,14 +452,14 @@ export default function Users() {
               </div>
               
               <div className="grid gap-2">
-                <Label htmlFor="fullName">Ad Soyad</Label>
+                <Label htmlFor="fullname">Ad Soyad</Label>
                 <Input
-                  id="fullName"
-                  {...registerCreateUser("fullName")}
+                  id="fullname"
+                  {...registerCreateUser("fullname")}
                 />
-                {createUserErrors.fullName && (
+                {createUserErrors.fullname && (
                   <p className="text-sm text-red-500">
-                    {createUserErrors.fullName.message}
+                    {createUserErrors.fullname.message}
                   </p>
                 )}
               </div>

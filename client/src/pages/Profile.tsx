@@ -17,7 +17,7 @@ import { AlertCircle, User as UserIcon, KeyRound, Save } from "lucide-react";
 
 // Şema tanımlamaları
 const updateProfileSchema = z.object({
-  fullName: z.string().optional(),
+  fullname: z.string().optional(),
   email: z.string().email("Geçerli bir e-posta adresi girin").optional(),
 });
 
@@ -47,7 +47,7 @@ export default function Profile() {
   } = useForm<UpdateProfileFormData>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
-      fullName: user?.fullName || "",
+      fullName: user?.fullname || "",
       email: user?.email || "",
     }
   });
