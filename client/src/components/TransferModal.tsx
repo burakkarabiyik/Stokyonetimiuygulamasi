@@ -42,9 +42,7 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
   const [formData, setFormData] = useState({
     targetLocationId: 0,
     transferDate: today,
-    notes: "",
-    ipAddress: server.ipAddress || "",
-    password: server.password || ""
+    notes: ""
   });
   
   // Lokasyonlar yüklendiğinde veya modal açıldığında default hedef lokasyonu ayarla
@@ -73,10 +71,7 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
       }
       
       // Oluşturulacak not
-      let serverNote = `IP Adresi: ${formData.ipAddress}\nŞifre: ${formData.password}`;
-      if (formData.notes.trim()) {
-        serverNote += `\n\n${formData.notes}`;
-      }
+      let serverNote = formData.notes.trim();
 
       // Transfer kaydını oluştur
       await apiRequest('POST', `/api/servers/${server.id}/transfers`, {
@@ -233,30 +228,7 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                   />
                 </div>
-                <div>
-                  <label htmlFor="ipAddress" className="block text-sm font-medium text-gray-700">Sunucu IP Adresi</label>
-                  <input
-                    type="text" 
-                    name="ipAddress" 
-                    id="ipAddress" 
-                    value={formData.ipAddress}
-                    onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                    placeholder="192.168.1.100" 
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Sunucu Şifresi</label>
-                  <input
-                    type="text" 
-                    name="password" 
-                    id="password" 
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                    placeholder="Erişim şifresi" 
-                  />
-                </div>
+
                 <div>
                   <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Transfer Notları</label>
                   <textarea 
