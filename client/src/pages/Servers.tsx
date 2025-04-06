@@ -63,8 +63,8 @@ import { Badge } from "@/components/ui/badge";
 export default function Servers() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
   // Server operation modals
@@ -141,8 +141,8 @@ export default function Servers() {
   
   const resetFilters = () => {
     setSearchQuery("");
-    setStatusFilter("");
-    setLocationFilter("");
+    setStatusFilter("all");
+    setLocationFilter("all");
   };
   
   // Status badge helper
@@ -172,10 +172,10 @@ export default function Servers() {
       server.specs.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Status filter
-    const matchesStatus = statusFilter === "" || server.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || server.status === statusFilter;
     
     // Location filter
-    const matchesLocation = locationFilter === "" || server.locationId.toString() === locationFilter;
+    const matchesLocation = locationFilter === "all" || server.locationId.toString() === locationFilter;
     
     return matchesSearch && matchesStatus && matchesLocation;
   }) || [];
@@ -256,7 +256,7 @@ export default function Servers() {
                 <SelectValue placeholder="Durum seçin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tüm Durumlar</SelectItem>
+                <SelectItem value="all">Tüm Durumlar</SelectItem>
                 <SelectItem value={ServerStatus.ACTIVE}>Aktif</SelectItem>
                 <SelectItem value={ServerStatus.TRANSIT}>Transferde</SelectItem>
                 <SelectItem value={ServerStatus.SETUP}>Kurulumda</SelectItem>
@@ -270,7 +270,7 @@ export default function Servers() {
                 <SelectValue placeholder="Lokasyon seçin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tüm Lokasyonlar</SelectItem>
+                <SelectItem value="all">Tüm Lokasyonlar</SelectItem>
                 {locations?.map((location) => (
                   <SelectItem key={location.id} value={location.id.toString()}>
                     {location.name}
@@ -279,7 +279,7 @@ export default function Servers() {
               </SelectContent>
             </Select>
           </div>
-          {(searchQuery || statusFilter || locationFilter) && (
+          {(searchQuery || statusFilter !== "all" || locationFilter !== "all") && (
             <div className="flex items-center justify-between pt-2">
               <div className="text-sm text-muted-foreground">
                 {filteredServers.length} sonuç bulundu
@@ -455,7 +455,7 @@ export default function Servers() {
             <ServerIcon className="h-12 w-12 text-muted-foreground/60 mb-4" />
             <h3 className="text-lg font-semibold mb-1">Sunucu Bulunamadı</h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery || statusFilter || locationFilter
+              {searchQuery || statusFilter !== "all" || locationFilter !== "all"
                 ? "Arama kriterlerinize uygun sonuç bulunamadı."
                 : "Sisteme henüz sunucu eklenmemiş."}
             </p>
