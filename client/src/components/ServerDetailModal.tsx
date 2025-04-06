@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,15 +36,9 @@ export default function ServerDetailModal({ isOpen, onClose, serverId, detail }:
   const isEditing = !!detail;
   
   // Form state'ini yönetmek için react-hook-form kullanıyoruz
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<ServerDetailFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue } = useForm<ServerDetailFormData>({
     resolver: zodResolver(serverDetailSchema),
-    defaultValues: detail ? {
-      vmName: detail.vmName || "",
-      ipAddress: detail.ipAddress,
-      username: detail.username || "",
-      password: detail.password || "",
-      notes: detail.notes || "",
-    } : {
+    defaultValues: {
       vmName: "",
       ipAddress: "",
       username: "",
@@ -51,6 +46,17 @@ export default function ServerDetailModal({ isOpen, onClose, serverId, detail }:
       notes: "",
     }
   });
+  
+  // Eğer düzenleme modu ise ve detail varsa, formu dolduralım
+  useEffect(() => {
+    if (isEditing && detail) {
+      setValue("vmName", detail.vmName || "");
+      setValue("ipAddress", detail.ipAddress || "");
+      setValue("username", detail.username || "");
+      setValue("password", detail.password || "");
+      setValue("notes", detail.notes || "");
+    }
+  }, [detail, isEditing, setValue]);
 
   // VM ekleme/düzenleme mutation'ı
   const serverDetailMutation = useMutation({
