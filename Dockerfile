@@ -12,8 +12,9 @@ RUN npm ci
 # Copy application code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application using our custom build script
+RUN chmod +x build.js
+RUN node build.js
 
 # Expose port for the server
 EXPOSE 5000

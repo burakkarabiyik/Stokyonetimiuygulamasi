@@ -124,4 +124,10 @@ echo "Database column check completed successfully"
 
 # Start the application
 echo "Starting the application..."
-exec "$@"
+if [ "$1" = "npm" ] && [ "$2" = "start" ]; then
+  echo "Running with modified start command for better error handling..."
+  NODE_ENV=production node --unhandled-rejections=strict dist/index.js
+else
+  echo "Running with original command: $@"
+  exec "$@"
+fi
