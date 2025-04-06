@@ -1,0 +1,32 @@
+with code 0
+app-1  |     at initializeDatabase (file:///app/dist/index.js:195:23)
+app-1  |     at setupDatabase (file:///app/dist/index.js:2266:36)
+app-1  |     at file:///app/dist/index.js:2297:23
+app-1  |     at file:///app/dist/index.js:2333:3
+app-1  |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+app-1  |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+app-1  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+app-1  | Error running migrations from ./drizzle/migrations: Error: Dynamic require of "fs" is not supported
+app-1  |     at file:///app/dist/index.js:7:9
+app-1  |     at initializeDatabase (file:///app/dist/index.js:195:23)
+app-1  |     at setupDatabase (file:///app/dist/index.js:2266:36)
+app-1  |     at file:///app/dist/index.js:2297:23
+app-1  |     at file:///app/dist/index.js:2333:3
+app-1  |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+app-1  |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+app-1  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+app-1  | All migration attempts failed. Will proceed to manual table creation...
+app-1  | Attempting to manually create tables...
+app-1  | Error during manual table creation: Error: Dynamic require of "fs" is not supported
+app-1  |     at file:///app/dist/index.js:7:9
+app-1  |     at initializeDatabase (file:///app/dist/index.js:222:23)
+app-1  |     at setupDatabase (file:///app/dist/index.js:2266:36)
+app-1  |     at file:///app/dist/index.js:2297:23
+app-1  |     at file:///app/dist/index.js:2333:3
+app-1  |     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+app-1  |     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+app-1  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+app-1  | Servers table exists, checking for missing columns...
+app-1  | Creating default admin user...
+app-1  | Users table exists, checking for column issues...
+app-1  | Server notes table exists, checking for missing
