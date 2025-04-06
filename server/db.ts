@@ -32,9 +32,33 @@ export async function initializeDatabase() {
     
     // Run migrations (this will create tables if they don't exist)
     try {
-      await migrate(db, { migrationsFolder: './migrations' });
+      console.log('Running migrations from both directories to ensure compatibility...');
+      
+      // First try with the 'migrations' folder
+      try {
+        await migrate(db, { 
+          migrationsFolder: './migrations',
+          migrationsTable: 'drizzle_migrations'
+        });
+        console.log('Migrations from ./migrations completed');
+      } catch (error) {
+        console.warn('Error running migrations from ./migrations:', error);
+      }
+      
+      // Also try with the 'drizzle' folder as a backup
+      try {
+        await migrate(db, { 
+          migrationsFolder: './drizzle',
+          migrationsTable: 'drizzle_migrations'
+        });
+        console.log('Migrations from ./drizzle completed');
+      } catch (error) {
+        console.warn('Error running migrations from ./drizzle:', error);
+      }
+      console.log('Migrations completed successfully');
     } catch (migrateError) {
-      console.warn('Migration error, attempting to continue:', migrateError);
+      console.error('Migration error:', migrateError);
+      console.warn('Attempting to continue despite migration error...');
       // Continue execution even if migrations fail
     }
     
