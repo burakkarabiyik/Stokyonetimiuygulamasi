@@ -31,7 +31,12 @@ export async function initializeDatabase() {
     console.log('Initializing database...');
     
     // Run migrations (this will create tables if they don't exist)
-    await migrate(db, { migrationsFolder: './migrations' });
+    try {
+      await migrate(db, { migrationsFolder: './migrations' });
+    } catch (migrateError) {
+      console.warn('Migration error, attempting to continue:', migrateError);
+      // Continue execution even if migrations fail
+    }
     
     // Check if admin user exists, create one if not
     const adminUsers = await db.select().from(users).where(eq(users.username, 'admin'));
