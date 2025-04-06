@@ -3,12 +3,13 @@ import { useParams, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Server, Activity, ServerNote, Location } from "@shared/schema";
+import { Server, Activity, ServerNote, Location, ServerDetail as ServerDetailType } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import TransferModal from "@/components/TransferModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import EditServerModal from "@/components/EditServerModal";
+import ServerDetailModal from "@/components/ServerDetailModal";
 import { formatDate } from "@/lib/utils";
 
 export default function ServerDetail() {
@@ -21,6 +22,8 @@ export default function ServerDetail() {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState(false);
+  const [addDetailModalOpen, setAddDetailModalOpen] = useState(false);
+  const [selectedDetail, setSelectedDetail] = useState<ServerDetailType | undefined>(undefined);
   
   const { data: server, isLoading, error } = useQuery<Server>({
     queryKey: [`/api/servers/${id}`],
@@ -34,6 +37,11 @@ export default function ServerDetail() {
   const { data: location } = useQuery<Location>({
     queryKey: [`/api/locations/${server?.locationId}`],
     enabled: !!server && !!server.locationId,
+  });
+  
+  const { data: serverDetails, isLoading: detailsLoading } = useQuery<ServerDetailType[]>({
+    queryKey: [`/api/servers/${id}/details`],
+    enabled: !!server,
   });
   
   const addNoteMutation = useMutation({
@@ -381,6 +389,81 @@ export default function ServerDetail() {
         </div>
       </div>
       
+      {/* Server Virtual Machines */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Sanal Makineler</h2>
+          <button 
+            onClick={() => {
+              setSelectedDetail(undefined);
+              setAddDetailModalOpen(true);
+            }}
+            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Sanal Makine Ekle
+          </button>
+        </div>
+        
+        {detailsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-500">Yükleniyor...</div>
+          </div>
+        ) : !serverDetails || serverDetails.length === 0 ? (
+          <div className="bg-white shadow rounded-lg p-6 text-center text-gray-500">
+            <p>Bu sunucuya henüz sanal makine eklenmemiş.</p>
+            <p className="mt-2">Yukarıdaki "Sanal Makine Ekle" butonunu kullanarak yeni VM ekleyebilirsiniz.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {serverDetails.map((detail) => (
+              <div key={detail.id} className="bg-white shadow rounded-lg overflow-hidden">
+                <div className="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">{detail.vmName || "VM"}</h3>
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => {
+                        setSelectedDetail(detail);
+                        setAddDetailModalOpen(true);
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="px-4 py-5 sm:p-6">
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-6">
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">IP Adresi</dt>
+                      <dd className="mt-1 text-sm text-gray-900">{detail.ipAddress}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Kullanıcı Adı</dt>
+                      <dd className="mt-1 text-sm text-gray-900">{detail.username}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Şifre</dt>
+                      <dd className="mt-1 text-sm text-gray-900">••••••••</dd>
+                    </div>
+                    {detail.notes && (
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Notlar</dt>
+                        <dd className="mt-1 text-sm text-gray-900">{detail.notes}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
       {/* Modals */}
       <TransferModal 
         isOpen={transferModalOpen} 
@@ -399,6 +482,13 @@ export default function ServerDetail() {
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         server={server}
+      />
+      
+      <ServerDetailModal
+        isOpen={addDetailModalOpen}
+        onClose={() => setAddDetailModalOpen(false)}
+        serverId={parseInt(id)}
+        detail={selectedDetail}
       />
     </div>
   );
