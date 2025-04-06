@@ -307,6 +307,74 @@ export class DatabaseStorage implements IStorage {
     return note;
   }
   
+  async updateServerNote(noteId: number, noteData: Partial<InsertServerNote>): Promise<ServerNote | undefined> {
+    if (!noteId) return undefined;
+    
+    // Get the original note
+    const originalNotes = await db.select().from(serverNotes).where(eq(serverNotes.id, noteId));
+    if (!originalNotes.length) return undefined;
+    
+    const originalNote = originalNotes[0];
+    
+    // Update the note
+    const [updatedNote] = await db.update(serverNotes)
+      .set({
+        note: noteData.note,
+        updatedAt: new Date(),
+        updatedBy: noteData.updatedBy
+      })
+      .where(eq(serverNotes.id, noteId))
+      .returning();
+    
+    if (!updatedNote) return undefined;
+    
+    // Add activity
+    const server = await this.getServerById(originalNote.serverId);
+    await this.addActivity({
+      serverId: originalNote.serverId,
+      type: 'note',
+      description: `Not güncellendi: ${server?.serverId || `ID: ${originalNote.serverId}`}`,
+      userId: noteData.updatedBy ?? originalNote.createdBy
+    });
+    
+    return updatedNote;
+  }
+  
+  async deleteServerNote(noteId: number): Promise<boolean> {
+    if (!noteId) return false;
+    
+    // Get the note first to have serverId for the activity
+    const noteResult = await db.select()
+      .from(serverNotes)
+      .where(eq(serverNotes.id, noteId));
+    
+    if (!noteResult.length) return false;
+    
+    const note = noteResult[0];
+    
+    // Soft delete by setting isDeleted to true
+    const result = await db.update(serverNotes)
+      .set({
+        isDeleted: true,
+        updatedAt: new Date()
+      })
+      .where(eq(serverNotes.id, noteId))
+      .returning();
+    
+    if (!result.length) return false;
+    
+    // Add activity
+    const server = await this.getServerById(note.serverId);
+    await this.addActivity({
+      serverId: note.serverId,
+      type: 'note',
+      description: `Not silindi: ${server?.serverId || `ID: ${note.serverId}`}`,
+      userId: note.createdBy
+    });
+    
+    return true;
+  }
+  
   // Transfer operations
   async getServerTransfers(serverId: number): Promise<ServerTransfer[]> {
     return await db

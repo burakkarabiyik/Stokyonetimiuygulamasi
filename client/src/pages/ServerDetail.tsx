@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Server, Activity, ServerNote, Location } from "@shared/schema";
@@ -10,6 +10,18 @@ import TransferModal from "@/components/TransferModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import EditServerModal from "@/components/EditServerModal";
 import { formatDate } from "@/lib/utils";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Pencil, Trash2, MessageSquare } from "lucide-react";
 
 export default function ServerDetail() {
   const [, navigate] = useLocation();
@@ -22,12 +34,24 @@ export default function ServerDetail() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState(false);
   
+  // Not düzenleme ve silme için state'ler
+  const [editNoteModalOpen, setEditNoteModalOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<ServerNote | null>(null);
+  const [editedNoteText, setEditedNoteText] = useState("");
+  const [deleteNoteModalOpen, setDeleteNoteModalOpen] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
+  
   const { data: server, isLoading, error } = useQuery<Server>({
     queryKey: [`/api/servers/${id}`],
   });
   
   const { data: activities, isLoading: activitiesLoading } = useQuery<Activity[]>({
     queryKey: [`/api/servers/${id}/activities`],
+    enabled: !!server,
+  });
+  
+  const { data: notes, isLoading: notesLoading } = useQuery<ServerNote[]>({
+    queryKey: [`/api/servers/${id}/notes`],
     enabled: !!server,
   });
   
@@ -67,6 +91,65 @@ export default function ServerDetail() {
     }
   });
   
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ noteId, note }: { noteId: number, note: string }) => {
+      if (!user || !user.id) {
+        throw new Error("Oturum açmış kullanıcı bulunamadı");
+      }
+      await apiRequest('PUT', `/api/servers/${id}/notes/${noteId}`, { 
+        note,
+        updatedBy: user.id 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/notes`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/activities`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/activities'] });
+      
+      toast({
+        title: "Not güncellendi",
+        description: "Not başarıyla güncellendi.",
+      });
+      
+      setEditNoteModalOpen(false);
+      setEditingNote(null);
+      setEditedNoteText("");
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Not güncellenirken bir hata oluştu.",
+      });
+    }
+  });
+  
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      await apiRequest('DELETE', `/api/servers/${id}/notes/${noteId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/notes`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/activities`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/activities'] });
+      
+      toast({
+        title: "Not silindi",
+        description: "Not başarıyla silindi.",
+      });
+      
+      setDeleteNoteModalOpen(false);
+      setDeletingNoteId(null);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Not silinirken bir hata oluştu.",
+      });
+    }
+  });
+  
   const deleteServerMutation = useMutation({
     mutationFn: async () => {
       await apiRequest('DELETE', `/api/servers/${id}`);
@@ -102,6 +185,33 @@ export default function ServerDetail() {
     e.preventDefault();
     if (noteText.trim()) {
       addNoteMutation.mutate(noteText);
+    }
+  };
+  
+  const handleEditNote = (note: ServerNote) => {
+    setEditingNote(note);
+    setEditedNoteText(note.note);
+    setEditNoteModalOpen(true);
+  };
+  
+  const handleUpdateNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingNote && editedNoteText.trim()) {
+      updateNoteMutation.mutate({ 
+        noteId: editingNote.id,
+        note: editedNoteText 
+      });
+    }
+  };
+  
+  const handleDeleteNote = (noteId: number) => {
+    setDeletingNoteId(noteId);
+    setDeleteNoteModalOpen(true);
+  };
+  
+  const confirmDeleteNote = () => {
+    if (deletingNoteId) {
+      deleteNoteMutation.mutate(deletingNoteId);
     }
   };
   
@@ -331,6 +441,52 @@ export default function ServerDetail() {
             </form>
           </div>
 
+          {/* Server Notes */}
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <h3 className="text-lg font-medium leading-6 text-gray-900">Notlar</h3>
+            </div>
+            <div className="px-4 py-5 sm:p-6">
+              {notesLoading ? (
+                <div className="text-center text-gray-500">Yükleniyor...</div>
+              ) : notes && notes.length > 0 ? (
+                <div className="space-y-4">
+                  {notes.filter(note => !note.isDeleted).map((note) => (
+                    <div key={note.id} className="bg-gray-50 p-3 rounded-md relative border border-gray-200">
+                      <p className="text-sm text-gray-700">{note.note}</p>
+                      <div className="mt-2 flex justify-between items-center">
+                        <div className="text-xs text-gray-500">
+                          {formatDate(note.createdAt)}
+                          {note.updatedAt && note.updatedAt !== note.createdAt && 
+                            <span className="ml-2 italic">(Düzenlendi: {formatDate(note.updatedAt)})</span>
+                          }
+                        </div>
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => handleEditNote(note)}
+                            className="text-gray-500 hover:text-gray-700"
+                            title="Düzenle"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteNote(note.id)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Sil"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">Henüz not bulunmuyor</div>
+              )}
+            </div>
+          </div>
+
           {/* Server History */}
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
@@ -400,6 +556,69 @@ export default function ServerDetail() {
         onClose={() => setEditModalOpen(false)}
         server={server}
       />
+      
+      {/* Edit Note Modal */}
+      <Dialog open={editNoteModalOpen} onOpenChange={setEditNoteModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Not Düzenle</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateNote}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="editedNoteText">Not</Label>
+                <Textarea
+                  id="editedNoteText"
+                  rows={5}
+                  value={editedNoteText}
+                  onChange={(e) => setEditedNoteText(e.target.value)}
+                  className="w-full"
+                  placeholder="Not içeriği..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={() => setEditNoteModalOpen(false)}>
+                İptal
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={updateNoteMutation.isPending || !editedNoteText.trim()}>
+                {updateNoteMutation.isPending ? "Güncelleniyor..." : "Güncelle"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Note Confirmation Modal */}
+      <Dialog open={deleteNoteModalOpen} onOpenChange={setDeleteNoteModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Not Silme Onayı</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-700">Bu notu silmek istediğinizden emin misiniz?</p>
+            <p className="text-gray-500 text-sm mt-2">Bu işlem geri alınamaz.</p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteNoteModalOpen(false)}>
+              İptal
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDeleteNote}
+              disabled={deleteNoteMutation.isPending}>
+              {deleteNoteMutation.isPending ? "Siliniyor..." : "Sil"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

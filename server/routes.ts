@@ -607,6 +607,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // PUT /api/servers/:serverId/notes/:noteId - Update a note
+  app.put("/api/servers/:serverId/notes/:noteId", async (req: Request, res: Response) => {
+    try {
+      const serverId = parseInt(req.params.serverId);
+      const noteId = parseInt(req.params.noteId);
+      
+      if (isNaN(serverId) || isNaN(noteId)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const server = await storage.getServerById(serverId);
+      if (!server) {
+        return res.status(404).json({ error: "Sunucu bulunamadı" });
+      }
+      
+      // Validate update data
+      const updateData = insertNoteSchema.partial().parse({
+        ...req.body,
+        serverId: serverId
+      });
+      
+      const updatedNote = await storage.updateServerNote(noteId, updateData);
+      if (!updatedNote) {
+        return res.status(404).json({ error: "Not bulunamadı" });
+      }
+      
+      res.json(updatedNote);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // DELETE /api/servers/:serverId/notes/:noteId - Delete a note
+  app.delete("/api/servers/:serverId/notes/:noteId", async (req: Request, res: Response) => {
+    try {
+      const serverId = parseInt(req.params.serverId);
+      const noteId = parseInt(req.params.noteId);
+      
+      if (isNaN(serverId) || isNaN(noteId)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const server = await storage.getServerById(serverId);
+      if (!server) {
+        return res.status(404).json({ error: "Sunucu bulunamadı" });
+      }
+      
+      const success = await storage.deleteServerNote(noteId);
+      if (!success) {
+        return res.status(404).json({ error: "Not bulunamadı" });
+      }
+      
+      res.status(204).end();
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
   // GET /api/servers/:id/transfers - Get transfers for a server
   app.get("/api/servers/:id/transfers", async (req: Request, res: Response) => {
     try {
