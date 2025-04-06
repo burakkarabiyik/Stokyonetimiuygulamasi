@@ -42,12 +42,24 @@ app.use((req, res, next) => {
   // Initialize database if needed
   if (process.env.USE_DATABASE === 'true' || process.env.NODE_ENV === 'production') {
     try {
+      // First initialize the database - this will create tables
       await initializeDatabase();
       log('Database initialized successfully');
       
-      // Fix missing columns in database tables
-      await fixDatabaseColumns();
-      log('Database column check and fix completed');
+      // AFTER tables are created, try to fix columns
+      try {
+        // Wait a moment to ensure tables are fully created
+        setTimeout(async () => {
+          try {
+            await fixDatabaseColumns();
+            log('Database column check and fix completed');
+          } catch (columnErr) {
+            log(`Error fixing database columns: ${columnErr}`, 'error');
+          }
+        }, 2000);
+      } catch (fixErr) {
+        log(`Error scheduling column fixes: ${fixErr}`, 'error');
+      }
     } catch (err) {
       log(`Database initialization error: ${err}`, 'error');
     }
