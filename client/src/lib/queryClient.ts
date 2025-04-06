@@ -23,10 +23,20 @@ export async function apiRequest(
     headers['Authorization'] = `Bearer ${token}`;
   }
   
+  // Convert date objects to ISO strings for request
+  let processedData = data;
+  if (data) {
+    processedData = Object.entries(data).reduce((acc, [key, value]) => {
+      // Check if the value is a Date object and convert it to ISO string
+      acc[key] = value instanceof Date ? value.toISOString() : value;
+      return acc;
+    }, {} as Record<string, any>);
+  }
+  
   const res = await fetch(url, {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
+    body: processedData ? JSON.stringify(processedData) : undefined,
   });
 
   await throwIfResNotOk(res);

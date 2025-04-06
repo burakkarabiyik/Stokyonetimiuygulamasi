@@ -79,12 +79,13 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
       // Oluşturulacak not
       let serverNote = formData.notes.trim();
 
-      // Transfer kaydını oluştur - transferredBy eklendi
+      // Transfer kaydını oluştur - transferredBy eklendi ve transferDate ISO string'e çevrildi
+      const transferDate = new Date(formData.transferDate);
       await apiRequest('POST', `/api/servers/${server.id}/transfers`, {
         toLocationId: targetLocation.id,
         toLocationName: targetLocation.name,
         transferredBy: user.id, // Giriş yapmış kullanıcının ID'si
-        transferDate: new Date(formData.transferDate),
+        transferDate: transferDate, // Date objesi olarak gönderiyoruz
         notes: serverNote
       });
     },
