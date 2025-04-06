@@ -42,6 +42,12 @@ export default function ServerDetail() {
   const { data: serverDetails, isLoading: detailsLoading } = useQuery<ServerDetailType[]>({
     queryKey: [`/api/servers/${id}/details`],
     enabled: !!server,
+    onSuccess: (data) => {
+      console.log("Sunucu detayları başarıyla alındı:", data);
+    },
+    onError: (error) => {
+      console.error("Sunucu detayları alınırken hata oluştu:", error);
+    }
   });
   
   const addNoteMutation = useMutation({
