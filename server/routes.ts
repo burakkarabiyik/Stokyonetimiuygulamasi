@@ -608,7 +608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // PUT /api/server-notes/:id - Update a server note
-  app.put("/api/server-notes/:id", async (req: Request, res: Response) => {
+  app.put("/api/server-notes/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -616,12 +616,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const noteUpdate = insertNoteSchema.partial().parse(req.body);
-      
-      // Validate that the currently signed in user is the one who created the note
-      // or is an admin
-      if (!req.user) {
-        return res.status(401).json({ error: "Bu işlem için giriş yapmalısınız" });
-      }
       
       const updatedNote = await storage.updateServerNote(id, noteUpdate);
       if (!updatedNote) {
@@ -635,17 +629,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // DELETE /api/server-notes/:id - Delete a server note
-  app.delete("/api/server-notes/:id", async (req: Request, res: Response) => {
+  app.delete("/api/server-notes/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Geçersiz not ID" });
-      }
-      
-      // Validate that the currently signed in user is the one who created the note
-      // or is an admin
-      if (!req.user) {
-        return res.status(401).json({ error: "Bu işlem için giriş yapmalısınız" });
       }
       
       const deleted = await storage.deleteServerNote(id);
