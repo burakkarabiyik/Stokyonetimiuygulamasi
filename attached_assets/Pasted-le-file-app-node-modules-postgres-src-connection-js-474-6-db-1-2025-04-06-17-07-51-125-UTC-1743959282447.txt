@@ -1,0 +1,35 @@
+le (file:///app/node_modules/postgres/src/connection.js:474:6)
+db-1   | 2025-04-06 17:07:51.125 UTC [70] STATEMENT:  select "id", "server_id", "model", "specs", "ip_address", "username", "password", "network_info", "location_id", "status", "created_at", "updated_at" from "servers"
+app-1  |     at Socket.data (file:///app/node_modules/postgres/src/connection.js:315:9)
+app-1  |     at Socket.emit (node:events:524:28)
+app-1  |     at addChunk (node:internal/streams/readable:561:12)
+app-1  |     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+app-1  |     at Readable.push (node:internal/streams/readable:392:5)
+app-1  |     at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+app-1  |   severity_local: 'ERROR',
+app-1  |   severity: 'ERROR',
+app-1  |   code: '42703',
+app-1  |   position: '83',
+app-1  |   file: 'parse_relation.c',
+app-1  |   line: '3665',
+app-1  |   routine: 'errorMissingColumn'
+app-1  | }
+app-1  | 5:07:51 PM [express] GET /api/stats 500 in 5ms :: {"error":"Sunucu hatası"}
+app-1  | 5:07:51 PM [express] GET /api/activities 200 in 3ms :: []
+app-1  | API Error: PostgresError: column "network_info" does not exist
+app-1  |     at ErrorResponse (file:///app/node_modules/postgres/src/connection.js:788:26)
+app-1  |     at handle (file:///app/node_modules/postgres/src/connection.js:474:6)
+app-1  |     at Socket.data (file:///app/node_modules/postgres/src/connection.js:315:9)
+app-1  |     at Socket.emit (node:events:524:28)
+app-1  |     at addChunk (node:internal/streams/readable:561:12)
+app-1  |     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+app-1  |     at Readable.push (node:internal/streams/readable:392:5)
+app-1  |     at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+app-1  |   severity_local: 'ERROR',
+app-1  |   severity: 'ERROR',
+app-1  |   code: '42703',
+app-1  |   position: '83',
+app-1  |   file: 'parse_relation.c',
+app-1  |   line: '3665',
+app-1  |   routine: 'errorMissingColumn'
+app-1  | }
