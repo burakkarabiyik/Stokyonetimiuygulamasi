@@ -71,8 +71,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteUser(id: number): Promise<boolean> {
-    const result = await db.delete(users).where(eq(users.id, id));
-    return result.rowCount > 0;
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
   }
   
   async getAllUsers(): Promise<User[]> {
@@ -108,8 +108,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteLocation(id: number): Promise<boolean> {
-    const result = await db.delete(locations).where(eq(locations.id, id));
-    return result.rowCount > 0;
+    const result = await db.delete(locations).where(eq(locations.id, id)).returning();
+    return result.length > 0;
   }
   
   // Server Model operations
@@ -141,8 +141,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteServerModel(id: number): Promise<boolean> {
-    const result = await db.delete(serverModels).where(eq(serverModels.id, id));
-    return result.rowCount > 0;
+    const result = await db.delete(serverModels).where(eq(serverModels.id, id)).returning();
+    return result.length > 0;
   }
   
   // Server operations
@@ -264,8 +264,8 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Delete server
-    const result = await db.delete(servers).where(eq(servers.id, id));
-    const deleted = result.rowCount > 0;
+    const result = await db.delete(servers).where(eq(servers.id, id)).returning();
+    const deleted = result.length > 0;
     
     if (deleted) {
       // Add activity

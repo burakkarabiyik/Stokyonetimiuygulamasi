@@ -1,0 +1,128 @@
+> rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | Initializing database...
+db-1   | 2025-04-06 14:17:12.626 UTC [68] ERROR:  column "fullName" does not exist at character 38
+db-1   | 2025-04-06 14:17:12.626 UTC [68] HINT:  Perhaps you meant to reference the column "users.full_name".
+app-1  | Database initialization failed: PostgresError: column "fullName" does not exist
+db-1   | 2025-04-06 14:17:12.626 UTC [68] STATEMENT:  select "id", "username", "password", "fullName", "email", "role", "is_active", "created_at" from "users" where "users"."username" = $1
+app-1  |     at ErrorResponse (file:///app/node_modules/postgres/src/connection.js:788:26)
+app-1  |     at handle (file:///app/node_modules/postgres/src/connection.js:474:6)
+app-1  |     at Socket.data (file:///app/node_modules/postgres/src/connection.js:315:9)
+db-1   | 2025-04-06 14:17:12.649 UTC [69] ERROR:  column "fullName" does not exist at character 38
+app-1  |     at Socket.emit (node:events:524:28)
+db-1   | 2025-04-06 14:17:12.649 UTC [69] HINT:  Perhaps you meant to reference the column "users.full_name".
+app-1  |     at addChunk (node:internal/streams/readable:561:12)
+db-1   | 2025-04-06 14:17:12.649 UTC [69] STATEMENT:  select "id", "username", "password", "fullName", "email", "role", "is_active", "created_at" from "users" where "users"."username" = $1
+app-1  |     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+app-1  |     at Readable.push (node:internal/streams/readable:392:5)
+app-1  |     at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+app-1  |   severity_local: 'ERROR',
+app-1  |   severity: 'ERROR',
+app-1  |   code: '42703',
+app-1  |   hint: 'Perhaps you meant to reference the column "users.full_name".',
+app-1  |   position: '38',
+app-1  |   file: 'parse_relation.c',
+app-1  |   line: '3665',
+app-1  |   routine: 'errorMissingColumn'
+app-1  | }
+app-1  | 2:17:12 PM [express] Database initialized successfully
+app-1  | Error creating admin user: PostgresError: column "fullName" does not exist
+app-1  |     at ErrorResponse (file:///app/node_modules/postgres/src/connection.js:788:26)
+app-1  |     at handle (file:///app/node_modules/postgres/src/connection.js:474:6)
+app-1  |     at Socket.data (file:///app/node_modules/postgres/src/connection.js:315:9)
+app-1  |     at Socket.emit (node:events:524:28)
+app-1  |     at addChunk (node:internal/streams/readable:561:12)
+app-1  |     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+app-1  |     at Readable.push (node:internal/streams/readable:392:5)
+app-1  |     at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+app-1  |   severity_local: 'ERROR',
+app-1  |   severity: 'ERROR',
+app-1  |   code: '42703',
+app-1  |   hint: 'Perhaps you meant to reference the column "users.full_name".',
+app-1  |   position: '38',
+app-1  |   file: 'parse_relation.c',
+app-1  |   line: '3665',
+app-1  |   routine: 'errorMissingColumn'
+app-1  | }
+app-1  | 2:17:12 PM [express] serving on port 5000
+
+
+v View in Docker Desktop   o View Config   w Enable Watch
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

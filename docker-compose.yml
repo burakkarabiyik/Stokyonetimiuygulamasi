@@ -9,10 +9,10 @@ services:
     environment:
       - NODE_ENV=production
       - USE_DATABASE=true
-      - DATABASE_URL=postgres://${PGUSER:-postgres}:${PGPASSWORD:-postgres}@db:5432/${PGDATABASE:-server_inventory}
-      - PGUSER=${PGUSER:-postgres}
-      - PGPASSWORD=${PGPASSWORD:-postgres}
-      - PGDATABASE=${PGDATABASE:-server_inventory}
+      - DATABASE_URL=postgres://postgres:password@db:5432/stokdb
+      - PGUSER=postgres
+      - PGPASSWORD=password
+      - PGDATABASE=stokdb
       - PGHOST=db
       - PGPORT=5432
       - SESSION_SECRET=${SESSION_SECRET:-your_secret_key_here}
@@ -32,14 +32,14 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=${PGUSER:-postgres}
-      - POSTGRES_PASSWORD=${PGPASSWORD:-postgres}
-      - POSTGRES_DB=${PGDATABASE:-server_inventory}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=stokdb
+    # volumes:
+      # - postgres_data1:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -53,5 +53,5 @@ networks:
   server-network:
     driver: bridge
 
-volumes:
-  postgres_data:
+# volumes:
+#   postgres_data1:

@@ -16,7 +16,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  fullName: text("fullName"),  // column name changed from full_name to fullName
+  fullName: text("full_name"),  // fullName field maps to full_name column in database
   email: text("email"),
   role: text("role").default("user").notNull(), // "admin" or "user"
   isActive: boolean("is_active").default(true).notNull(),
