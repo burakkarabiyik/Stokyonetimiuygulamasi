@@ -1,0 +1,70 @@
+e...
+app-1  | [✓] Changes applied
+app-1  | Starting the application...
+app-1  |
+app-1  | > rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | node:internal/modules/cjs/loader:1215
+app-1  |   throw err;
+app-1  |   ^
+app-1  |
+app-1  | Error: Cannot find module '/app/dist/index.js'
+app-1  |     at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+app-1  |     at Module._load (node:internal/modules/cjs/loader:1043:27)
+app-1  |     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+app-1  |     at node:internal/main/run_main_module:28:49 {
+app-1  |   code: 'MODULE_NOT_FOUND',
+app-1  |   requireStack: []
+app-1  | }
+app-1  |
+app-1  | Node.js v20.19.0
+app-1 exited with code 1
+app-1  |
+app-1  | > rest-express@1.0.0 db:push
+app-1  | > drizzle-kit push
+app-1  |
+app-1  | No config path provided, using default 'drizzle.config.ts'
+app-1  | Reading config file '/app/drizzle.config.ts'
+app-1  | Using 'pg' driver for database querying
+app-1  | [⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[✓] Pulling schema from database...
+app-1  | [i] No changes detected
+app-1  | Starting the application...
+app-1  |
+app-1  | > rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | node:internal/modules/cjs/loader:1215
+app-1  |   throw err;
+app-1  |   ^
+app-1  |
+app-1  | Error: Cannot find module '/app/dist/index.js'
+app-1  |     at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+app-1  |     at Module._load (node:internal/modules/cjs/loader:1043:27)
+app-1  |     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+app-1  |     at node:internal/main/run_main_module:28:49 {
+app-1  |   code: 'MODULE_NOT_FOUND',
+app-1  |   requireStack: []
+app-1  | }
+app-1  |
+app-1  | Node.js v20.19.0
+app-1 exited with code 1
+app-1  |
+app-1  | > rest-express@1.0.0 db:push
+app-1  | > drizzle-kit push
+app-1  |
+app-1  | No config path provided, using default 'drizzle.config.ts'
+app-1  | Reading config file '/app/drizzle.config.ts'
+app-1  | Using 'pg' driver for database querying
+app-1  | [⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[✓] Pulling schema from database...
+app-1  | [i] No changes detected
+app-1  | Starting the application...
+app-1  |
+app-1  | > rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | node:internal/modules/cjs/loader:1215
