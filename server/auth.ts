@@ -27,20 +27,44 @@ export async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Auth middlewares that can be exported and used in routes
+export const isAuthenticated = (req: any, res: any, next: any) => {
+  console.log("isAuthenticated middleware called");
+  console.log("isAuthenticated:", req.isAuthenticated());
+  console.log("User:", req.user);
+  
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Oturum açmanız gerekiyor' });
+};
+
+export const isAdmin = (req: any, res: any, next: any) => {
+  console.log("isAdmin middleware called");
+  console.log("isAuthenticated:", req.isAuthenticated());
+  console.log("User:", req.user);
+  
+  if (req.isAuthenticated() && req.user && req.user.role === 'admin') {
+    return next();
+  }
+  res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
+};
+
 export function setupAuth(app: Express) {
   const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/server_inventory';
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'depo-yonetim-app-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Changed to true to make sure session is properly saved
     cookie: { 
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     },
     store: new PostgresSessionStore({
       conString: connectionString,
-      createTableIfMissing: true
+      createTableIfMissing: true,
+      pruneSessionInterval: 60 // Prune expired sessions every 60 seconds
     })
   };
 
@@ -71,14 +95,21 @@ export function setupAuth(app: Express) {
   );
 
   passport.serializeUser((user: any, done) => {
+    console.log("Serializing user:", user.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
       const [user] = await db.select().from(users).where(eq(users.id, id));
+      if (!user) {
+        console.error("User not found during deserialization. ID:", id);
+        return done(null, false);
+      }
+      console.log("Deserialized user:", user.id, user.username);
       done(null, user);
     } catch (err) {
+      console.error("Error during deserialization:", err);
       done(err);
     }
   });

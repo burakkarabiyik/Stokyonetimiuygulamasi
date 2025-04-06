@@ -65,20 +65,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error creating admin user:', err);
   }
   
-  // Auth middleware
-  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    if (req.isAuthenticated()) {
-      return next();
-    }
-    res.status(401).json({ error: 'Oturum açmanız gerekiyor' });
-  };
-  
-  const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-    if (req.isAuthenticated() && req.user && (req.user as any).role === UserRole.ADMIN) {
-      return next();
-    }
-    res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
-  };
+  // Import auth middlewares from auth.ts
+  const { isAuthenticated, isAdmin } = await import('./auth');
   
   // API Routes
   
