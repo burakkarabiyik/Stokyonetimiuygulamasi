@@ -5,8 +5,13 @@ import {
   MapPin,
   PieChart,
   Settings,
-  LogOut
+  LogOut,
+  UserCog,
+  Shield,
+  User
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { UserRole } from "@shared/schema";
 
 interface SidebarProps {
   open: boolean;
@@ -15,11 +20,13 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const [location] = useLocation();
+  const { user, logoutMutation } = useAuth();
   
   const isActive = (path: string) => {
     return location === path;
   };
   
+  // Ana menü seçenekleri
   const navItems = [
     {
       name: "Yönetim Paneli",
@@ -40,13 +47,26 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       name: "Grafiksel Raporlar",
       path: "/reports",
       icon: <PieChart className="h-5 w-5" />
-    },
+    }
+  ];
+  
+  // Kullanıcı ayarları menüsü
+  const userItems = [
     {
-      name: "Ayarlar",
+      name: "Profil Ayarları",
       path: "/profile",
       icon: <Settings className="h-5 w-5" />
     }
   ];
+  
+  // Yönetici seçenekleri (sadece admin kullanıcıları için)
+  const adminItems = user?.role === UserRole.ADMIN ? [
+    {
+      name: "Kullanıcı Yönetimi",
+      path: "/users",
+      icon: <UserCog className="h-5 w-5" />
+    }
+  ] : [];
   
   return (
     <div 
@@ -68,6 +88,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          {/* Ana Menü */}
           <div className="px-3 py-4">
             <div className="mb-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Ana Menü
@@ -97,13 +118,112 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               ))}
             </nav>
           </div>
+          
+          {/* Kullanıcı Ayarları */}
+          <div className="px-3 py-2">
+            <div className="mb-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Kullanıcı
+            </div>
+            <nav className="space-y-1">
+              {userItems.map((item) => (
+                <a 
+                  key={item.path}
+                  href={item.path}
+                  className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md ${
+                    isActive(item.path)
+                      ? 'bg-primary-50 text-primary border-l-2 border-primary'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-primary'
+                  } transition-colors`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.history.pushState(null, "", item.path);
+                    window.dispatchEvent(new Event("popstate"));
+                    if (window.innerWidth < 768) {
+                      onClose();
+                    }
+                  }}
+                >
+                  <span className={`mr-3 ${isActive(item.path) ? 'text-primary' : 'text-gray-500'}`}>{item.icon}</span>
+                  {item.name}
+                </a>
+              ))}
+            </nav>
+          </div>
+          
+          {/* Yönetici Menüsü (Sadece yöneticiler için görünür) */}
+          {adminItems.length > 0 && (
+            <div className="px-3 py-2">
+              <div className="mb-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center">
+                <Shield className="h-3 w-3 mr-1 text-primary" />
+                Yönetici
+              </div>
+              <nav className="space-y-1">
+                {adminItems.map((item) => (
+                  <a 
+                    key={item.path}
+                    href={item.path}
+                    className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md ${
+                      isActive(item.path)
+                        ? 'bg-primary-50 text-primary border-l-2 border-primary'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-primary'
+                    } transition-colors`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.history.pushState(null, "", item.path);
+                      window.dispatchEvent(new Event("popstate"));
+                      if (window.innerWidth < 768) {
+                        onClose();
+                      }
+                    }}
+                  >
+                    <span className={`mr-3 ${isActive(item.path) ? 'text-primary' : 'text-gray-500'}`}>{item.icon}</span>
+                    {item.name}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          )}
         </div>
         
         <div className="p-4 border-t border-gray-100">
-          <button className="flex items-center px-3 py-2 w-full text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors">
+          <button 
+            className="flex items-center px-3 py-2 w-full text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            onClick={() => logoutMutation.mutate()}
+          >
             <LogOut className="h-5 w-5 mr-3" />
             Çıkış Yap
           </button>
+          
+          {/* Kullanıcı bilgileri */}
+          {user && (
+            <div className="mt-3 px-3 py-2 bg-gray-50 rounded-md">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+                <div className="ml-3 flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {user.username}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate flex items-center">
+                    {user.role === UserRole.ADMIN ? (
+                      <>
+                        <Shield className="h-3 w-3 mr-1 text-primary" />
+                        <span>Yönetici</span>
+                      </>
+                    ) : (
+                      <>
+                        <User className="h-3 w-3 mr-1 text-gray-500" />
+                        <span>Kullanıcı</span>
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

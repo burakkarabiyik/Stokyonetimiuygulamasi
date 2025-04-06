@@ -8,10 +8,12 @@ import Servers from "@/pages/Servers";
 import ServerDetail from "@/pages/ServerDetail";
 import Locations from "@/pages/Locations";
 import Reports from "@/pages/Reports";
+import Users from "@/pages/Users";
+import Profile from "@/pages/Profile";
 import Sidebar from "@/components/Sidebar";
 import { useState } from "react";
 import { useAuth, AuthProvider } from "@/hooks/use-auth";
-import { Loader2, Settings, LogOut } from "lucide-react";
+import { Loader2, Settings, LogOut, UserCog, Shield } from "lucide-react";
 import AuthPage from "@/pages/auth-page";
 import { 
   DropdownMenu,
@@ -149,6 +151,8 @@ function Router() {
             <ProtectedRoute path="/servers/:id" component={ServerDetail} />
             <ProtectedRoute path="/locations" component={Locations} />
             <ProtectedRoute path="/reports" component={Reports} />
+            <ProtectedRoute path="/profile" component={Profile} />
+            <ProtectedRoute path="/users" component={Users} />
             <Route component={NotFound} />
           </Switch>
         </main>

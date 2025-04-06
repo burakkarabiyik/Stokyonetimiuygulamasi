@@ -150,6 +150,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
   
+  // User profile and account routes
+  app.put('/api/user/profile', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { fullName, email } = req.body;
+      
+      const updatedUser = await storage.updateUser(userId, { fullName, email });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      
+      res.json(updatedUser);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  app.post('/api/user/change-password', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { currentPassword, newPassword } = req.body;
+      
+      // Get user data
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      
+      // Verify current password
+      const isValid = await comparePasswords(currentPassword, user.password);
+      
+      if (!isValid) {
+        return res.status(400).json({ error: "Mevcut şifre yanlış" });
+      }
+      
+      // Update password
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUser(userId, { password: hashedPassword });
+      
+      res.status(200).json({ message: "Şifre başarıyla değiştirildi" });
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // User management routes (Admin only)
+  app.get('/api/users', isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  app.post('/api/users', isAdmin, async (req, res) => {
+    try {
+      const userData = req.body;
+      
+      // Validate input
+      const validatedData = insertUserSchema.parse(userData);
+      
+      // Hash password
+      const hashedPassword = await hashPassword(validatedData.password);
+      
+      // Create user
+      const newUser = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword
+      });
+      
+      res.status(201).json(newUser);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  app.post('/api/users/:id/reset-password', isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { password } = req.body;
+      
+      if (!password || password.length < 6) {
+        return res.status(400).json({ error: "Şifre en az 6 karakter olmalıdır" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      
+      // Hash and update password
+      const hashedPassword = await hashPassword(password);
+      await storage.updateUser(userId, { password: hashedPassword });
+      
+      res.status(200).json({ message: "Şifre başarıyla sıfırlandı" });
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  app.delete('/api/users/:id', isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const adminId = (req.user as any).id;
+      
+      // Prevent admin from deleting themselves
+      if (userId === adminId) {
+        return res.status(400).json({ error: "Kendi hesabınızı silemezsiniz" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      
+      // Delete user
+      const success = await storage.deleteUser(userId);
+      
+      if (success) {
+        res.status(200).json({ message: "Kullanıcı başarıyla silindi" });
+      } else {
+        res.status(500).json({ error: "Kullanıcı silinirken bir hata oluştu" });
+      }
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
   app.post('/api/register', isAdmin, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);

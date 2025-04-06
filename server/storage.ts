@@ -29,6 +29,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
+  getAllUsers(): Promise<User[]>;
   
   // Location operations
   getAllLocations(): Promise<Location[]>;
@@ -153,6 +154,10 @@ export class MemStorage implements IStorage {
   
   async deleteUser(id: number): Promise<boolean> {
     return this.users.delete(id);
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
   }
   
   // Location operations
