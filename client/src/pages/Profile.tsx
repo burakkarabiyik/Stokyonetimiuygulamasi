@@ -47,7 +47,7 @@ export default function Profile() {
   } = useForm<UpdateProfileFormData>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
-      fullName: user?.fullname || "",
+      fullname: user?.fullname || "",
       email: user?.email || "",
     }
   });
@@ -184,15 +184,15 @@ export default function Profile() {
 
                   <div className="grid gap-2">
                     <div className="grid gap-1">
-                      <Label htmlFor="fullName">Ad Soyad</Label>
+                      <Label htmlFor="fullname">Ad Soyad</Label>
                       <Input
-                        id="fullName"
+                        id="fullname"
                         type="text"
-                        {...profileRegister("fullName")}
+                        {...profileRegister("fullname")}
                       />
-                      {profileErrors.fullName && (
+                      {profileErrors.fullname && (
                         <p className="text-sm text-red-500">
-                          {profileErrors.fullName.message}
+                          {profileErrors.fullname.message}
                         </p>
                       )}
                     </div>

@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Server, Activity, ServerNote, Location } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import TransferModal from "@/components/TransferModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import EditServerModal from "@/components/EditServerModal";
@@ -14,6 +15,7 @@ export default function ServerDetail() {
   const [, navigate] = useLocation();
   const { id } = useParams();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [noteText, setNoteText] = useState("");
   const [transferModalOpen, setTransferModalOpen] = useState(false);
@@ -36,7 +38,13 @@ export default function ServerDetail() {
   
   const addNoteMutation = useMutation({
     mutationFn: async (note: string) => {
-      await apiRequest('POST', `/api/servers/${id}/notes`, { note });
+      if (!user || !user.id) {
+        throw new Error("Oturum açmış kullanıcı bulunamadı");
+      }
+      await apiRequest('POST', `/api/servers/${id}/notes`, { 
+        note,
+        createdBy: user.id 
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/notes`] });

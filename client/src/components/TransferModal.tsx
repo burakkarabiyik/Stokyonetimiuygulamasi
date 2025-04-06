@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { Server } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Location {
   id: number;
@@ -23,6 +24,7 @@ interface TransferModalProps {
 
 export default function TransferModal({ isOpen, onClose, server }: TransferModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format for input date
   
   // Mevcut konum bilgisini almak için lokasyonları çekelim
@@ -70,13 +72,18 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
         throw new Error("Hedef lokasyon bulunamadı");
       }
       
+      if (!user || !user.id) {
+        throw new Error("Oturum açmış kullanıcı bulunamadı");
+      }
+      
       // Oluşturulacak not
       let serverNote = formData.notes.trim();
 
-      // Transfer kaydını oluştur
+      // Transfer kaydını oluştur - transferredBy eklendi
       await apiRequest('POST', `/api/servers/${server.id}/transfers`, {
         toLocationId: targetLocation.id,
         toLocationName: targetLocation.name,
+        transferredBy: user.id, // Giriş yapmış kullanıcının ID'si
         transferDate: new Date(formData.transferDate),
         notes: serverNote
       });
