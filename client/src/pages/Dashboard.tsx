@@ -8,13 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Dashboard() {
   const { toast } = useToast();
   
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<{
-    total: number;
-    active: number;
-    transit: number;
-    setup: number;
-    field: number; // Sahada Kullanımda eklendi
-  }>({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['/api/stats'],
   });
   
@@ -50,31 +44,13 @@ export default function Dashboard() {
         );
       case 'setup':
         return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
             Kurulumda
-          </span>
-        );
-      case 'field':
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-            Sahada Kullanımda
-          </span>
-        );
-      case 'ready':
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
-            Gönderilebilir
-          </span>
-        );
-      case 'inactive':
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-            Pasif
           </span>
         );
       case 'maintenance': // Backward compatibility
         return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
             Kurulumda
           </span>
         );
@@ -139,7 +115,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard 
           title="Toplam Sunucu"
           value={statsLoading ? "..." : stats?.total.toString() || "0"}
@@ -186,18 +162,6 @@ export default function Dashboard() {
           }
           bgColor="bg-red-100"
           iconColor="text-red-600"
-        />
-        
-        <StatsCard 
-          title="Sahada Kullanımda"
-          value={statsLoading ? "..." : stats?.field.toString() || "0"}
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          }
-          bgColor="bg-blue-100"
-          iconColor="text-blue-600"
         />
       </div>
 

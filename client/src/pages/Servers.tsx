@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Server, ServerStatus } from "@shared/schema";
+import { Server } from "@shared/schema";
 import AddServerModal from "@/components/AddServerModal";
 import TransferModal from "@/components/TransferModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
@@ -84,54 +84,26 @@ export default function Servers() {
   
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case ServerStatus.ACTIVE:
+      case 'active':
         return (
           <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
             Aktif
           </span>
         );
-      case ServerStatus.TRANSIT:
+      case 'transit':
         return (
           <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
             Transfer Sürecinde
           </span>
         );
-      case ServerStatus.SETUP:
+      case 'maintenance':
         return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-            Kurulumda
-          </span>
-        );
-      case ServerStatus.FIELD:
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-            Sahada Kullanımda
-          </span>
-        );
-      case ServerStatus.READY:
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
-            Gönderilebilir
-          </span>
-        );
-      case ServerStatus.INACTIVE:
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-            Pasif
-          </span>
-        );
-      case 'maintenance': // Eski değer için geriye dönük uyumluluk
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-            Kurulumda
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+            Bakımda
           </span>
         );
       default:
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-            {status || "Belirtilmedi"}
-          </span>
-        );
+        return null;
     }
   };
   
@@ -197,7 +169,7 @@ export default function Servers() {
           </div>
           <button 
             onClick={() => setAddServerModalOpen(true)} 
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -218,12 +190,9 @@ export default function Servers() {
             className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
           >
             <option value="">Tümü</option>
-            <option value={ServerStatus.INACTIVE}>Pasif</option>
-            <option value={ServerStatus.ACTIVE}>Aktif</option>
-            <option value={ServerStatus.TRANSIT}>Transfer Sürecinde</option>
-            <option value={ServerStatus.SETUP}>Kurulumda</option>
-            <option value={ServerStatus.READY}>Gönderilebilir</option>
-            <option value={ServerStatus.FIELD}>Sahada Kullanımda</option>
+            <option value="active">Aktif</option>
+            <option value="transit">Transfer Sürecinde</option>
+            <option value="maintenance">Bakımda</option>
           </select>
         </div>
         <div>
@@ -303,7 +272,7 @@ export default function Servers() {
                       <div className="flex space-x-2">
                         <button 
                           onClick={() => handleTransferClick(server)} 
-                          className="text-blue-600 hover:text-blue-900" 
+                          className="text-primary-600 hover:text-primary-900" 
                           title="Transfer Et"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

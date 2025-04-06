@@ -16,37 +16,27 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format for input date
   
   const [formData, setFormData] = useState({
-    targetLocation: "",
+    targetLocation: server.location === "Ankara Depo" ? "İstanbul Merkez" : server.location === "İstanbul Merkez" ? "İzmir Depo" : "Ankara Depo",
     transferDate: today,
     notes: "",
-    markAsFieldUse: false,
-    markAsSetup: server.status === "inactive" // Pasif sunucular için varsayılan olarak seçili
+    ipAddress: "",
+    password: ""
   });
   
   const transferMutation = useMutation({
     mutationFn: async () => {
       // Oluşturulacak not
-      let serverNote = formData.notes.trim();
+      let serverNote = `IP Adresi: ${formData.ipAddress}\nŞifre: ${formData.password}`;
+      if (formData.notes.trim()) {
+        serverNote += `\n\n${formData.notes}`;
+      }
 
       // Transfer kaydını oluştur
       await apiRequest('POST', `/api/servers/${server.id}/transfers`, {
         toLocation: formData.targetLocation,
-        transferDate: formData.transferDate, // String olarak gönderiyoruz, API'de dönüştürülecek
-        notes: serverNote,
-        markAsFieldUse: formData.markAsFieldUse // Sahada kullanımda olarak işaretlenip işaretlenmeyeceği
+        transferDate: new Date(formData.transferDate),
+        notes: serverNote
       });
-      
-      // Eğer sunucu pasif durumda ise ve kuruluma alınması işaretlendi ise durumu güncelle
-      if (server.status === "inactive" && formData.markAsSetup) {
-        await apiRequest("PUT", `/api/servers/${server.id}`, {
-          status: "setup" // Kurulumda durumuna güncelle
-        });
-        
-        // Aktivite ekle
-        await apiRequest("POST", `/api/servers/${server.id}/notes`, {
-          note: "Pasif durumdan kuruluma alındı."
-        });
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/servers'] });
@@ -56,16 +46,9 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
       queryClient.invalidateQueries({ queryKey: ['/api/activities'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       
-      let successMessage = "Transfer işlemi başlatıldı.";
-      
-      // Eğer pasif sunucu kuruluma alındıysa başarı mesajını güncelle
-      if (server.status === "inactive" && formData.markAsSetup) {
-        successMessage = "Transfer işlemi başlatıldı ve sunucu kuruluma alındı.";
-      }
-      
       toast({
         title: "Başarılı",
-        description: successMessage,
+        description: "Transfer işlemi başlatıldı.",
       });
       
       onClose();
@@ -109,12 +92,9 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
-  
-  // Artık önceden tanımlanmış lokasyonlara ihtiyacımız yok, kullanıcı istediği metni girebilir
+  // Get available locations that are not the current location
+  const availableLocations = ["Ankara Depo", "İstanbul Merkez", "İzmir Depo"]
+    .filter(location => location !== server.location);
   
   if (!isOpen) return null;
   
@@ -176,15 +156,17 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                 </div>
                 <div>
                   <label htmlFor="targetLocation" className="block text-sm font-medium text-gray-700">Hedef Konum</label>
-                  <input 
-                    type="text" 
-                    name="targetLocation" 
+                  <select 
                     id="targetLocation" 
+                    name="targetLocation" 
                     value={formData.targetLocation}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                    placeholder="Hedef konum giriniz" 
-                  />
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                  >
+                    {availableLocations.map((location, index) => (
+                      <option key={index} value={location}>{location}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label htmlFor="transferDate" className="block text-sm font-medium text-gray-700">Transfer Tarihi</label>
@@ -197,7 +179,30 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                   />
                 </div>
-                {/* IP adresi ve şifre alanları kaldırıldı */}
+                <div>
+                  <label htmlFor="ipAddress" className="block text-sm font-medium text-gray-700">Sunucu IP Adresi</label>
+                  <input
+                    type="text" 
+                    name="ipAddress" 
+                    id="ipAddress" 
+                    value={formData.ipAddress}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    placeholder="192.168.1.100" 
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Sunucu Şifresi</label>
+                  <input
+                    type="text" 
+                    name="password" 
+                    id="password" 
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    placeholder="Erişim şifresi" 
+                  />
+                </div>
                 <div>
                   <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Transfer Notları</label>
                   <textarea 
@@ -210,41 +215,11 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                     placeholder="Transfer ile ilgili diğer notlar..."
                   ></textarea>
                 </div>
-                {server.status === "inactive" && (
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="markAsSetup"
-                      id="markAsSetup"
-                      checked={formData.markAsSetup}
-                      onChange={handleCheckboxChange}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="markAsSetup" className="ml-2 block text-sm text-gray-700">
-                      Kuruluma alınacak (Pasif durumdan kuruluma)
-                    </label>
-                  </div>
-                )}
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="markAsFieldUse"
-                    id="markAsFieldUse"
-                    checked={formData.markAsFieldUse}
-                    onChange={handleCheckboxChange}
-                    disabled={server.status !== "ready"} 
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded disabled:opacity-50"
-                  />
-                  <label htmlFor="markAsFieldUse" className="ml-2 block text-sm text-gray-700 disabled:opacity-50">
-                    Sahada Kullanımda olarak işaretle {server.status !== "ready" && "(Sadece 'Gönderilebilir' durumdaki sunucular için)"}
-                  </label>
-                </div>
                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                   <button 
                     type="submit" 
                     disabled={transferMutation.isPending}
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {transferMutation.isPending ? "İşleniyor..." : "Transfer Başlat"}
                   </button>

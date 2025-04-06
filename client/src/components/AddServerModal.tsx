@@ -17,44 +17,33 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
     model: "",
     specs: "",
     location: "Ankara Depo",
-    status: ServerStatus.INACTIVE, // Pasif olarak başlatılır, daha sonra aktifleştirilir
-    notes: "",
-    quantity: 1
+    status: ServerStatus.ACTIVE,
+    notes: ""
   });
   
   const addServerMutation = useMutation({
     mutationFn: async () => {
-      const quantity = parseInt(formData.quantity.toString()) || 1;
-      const baseServerId = formData.serverId;
+      await apiRequest('POST', '/api/servers', {
+        serverId: formData.serverId,
+        model: formData.model,
+        specs: formData.specs,
+        location: formData.location,
+        status: formData.status
+      });
       
-      // Toplu sunucu ekleme işlemi
-      for (let i = 0; i < quantity; i++) {
-        // Birden fazla sunucu ekleniyorsa, sunucu ID'sini sıralı hale getir
-        const currentServerId = quantity > 1 ? `${baseServerId}-${i + 1}` : baseServerId;
-        
-        // Sunucuyu oluştur
-        await apiRequest('POST', '/api/servers', {
-          serverId: currentServerId,
-          model: formData.model,
-          specs: formData.specs,
-          location: formData.location,
-          status: formData.status
+      // If we have notes, add them after creating the server
+      if (formData.notes.trim()) {
+        // Get the created server to get its ID
+        const servers = await queryClient.fetchQuery({
+          queryKey: ['/api/servers'],
         });
         
-        // Eğer not varsa ekle
-        if (formData.notes.trim()) {
-          // Oluşturulan sunucuyu bul
-          const servers = await queryClient.fetchQuery({
-            queryKey: ['/api/servers'],
+        const newServer = servers.find((s: any) => s.serverId === formData.serverId);
+        
+        if (newServer) {
+          await apiRequest('POST', `/api/servers/${newServer.id}/notes`, {
+            note: formData.notes
           });
-          
-          const newServer = servers.find((s: any) => s.serverId === currentServerId);
-          
-          if (newServer) {
-            await apiRequest('POST', `/api/servers/${newServer.id}/notes`, {
-              note: formData.notes
-            });
-          }
         }
       }
     },
@@ -63,10 +52,9 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/activities'] });
       
-      const quantity = parseInt(formData.quantity.toString()) || 1;
       toast({
         title: "Başarılı",
-        description: quantity > 1 ? `${quantity} adet sunucu başarıyla eklendi.` : "Sunucu başarıyla eklendi.",
+        description: "Sunucu başarıyla eklendi.",
       });
       
       // Reset form and close modal
@@ -75,9 +63,8 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
         model: "",
         specs: "",
         location: "Ankara Depo",
-        status: ServerStatus.INACTIVE,
-        notes: "",
-        quantity: 1
+        status: ServerStatus.ACTIVE,
+        notes: ""
       });
       
       onClose();
@@ -163,35 +150,17 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
                 Yeni Sunucu Ekle
               </h3>
               <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="serverId" className="block text-sm font-medium text-gray-700">Sunucu ID</label>
-                    <input 
-                      type="text" 
-                      name="serverId" 
-                      id="serverId" 
-                      value={formData.serverId}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
-                      placeholder="SRV-2023-092"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Adet</label>
-                    <input 
-                      type="number" 
-                      name="quantity" 
-                      id="quantity" 
-                      min="1"
-                      max="50"
-                      value={formData.quantity}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
-                      placeholder="1"
-                    />
-                    <p className="mt-1 text-xs text-gray-500">Aynı modelden kaç adet eklemek istediğinizi belirtin (maksimum 50)</p>
-                  </div>
+                <div>
+                  <label htmlFor="serverId" className="block text-sm font-medium text-gray-700">Sunucu ID</label>
+                  <input 
+                    type="text" 
+                    name="serverId" 
+                    id="serverId" 
+                    value={formData.serverId}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
+                    placeholder="SRV-2023-092"
+                  />
                 </div>
                 <div>
                   <label htmlFor="model" className="block text-sm font-medium text-gray-700">Sunucu Modeli</label>
@@ -240,12 +209,9 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
                     onChange={handleChange}
                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
                   >
-                    <option value={ServerStatus.INACTIVE}>Pasif</option>
                     <option value={ServerStatus.ACTIVE}>Aktif</option>
                     <option value={ServerStatus.TRANSIT}>Transfer Sürecinde</option>
                     <option value={ServerStatus.SETUP}>Kurulumda</option>
-                    <option value={ServerStatus.READY}>Gönderilebilir</option>
-                    <option value={ServerStatus.FIELD}>Sahada Kullanımda</option>
                   </select>
                 </div>
                 <div>

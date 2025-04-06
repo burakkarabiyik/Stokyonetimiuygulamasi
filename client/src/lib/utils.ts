@@ -1,4 +1,4 @@
-export const formatDate = (date: string | Date | null | undefined, showTime = false): string => {
+export const formatDate = (date: string | Date | null | undefined): string => {
   if (!date) return '-';
   
   const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -7,20 +7,12 @@ export const formatDate = (date: string | Date | null | undefined, showTime = fa
     return '-';
   }
   
-  if (showTime) {
-    return new Intl.DateTimeFormat('tr-TR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(dateObj);
-  }
-  
   return new Intl.DateTimeFormat('tr-TR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(dateObj);
 };
 
@@ -82,13 +74,7 @@ export const getStatusLabel = (status: string): string => {
     case 'setup':
       return 'Kurulumda';
     case 'maintenance': // Keep backwards compatibility
-      return 'Kurulumda';
-    case 'field':
-      return 'Sahada Kullanımda';
-    case 'ready':
-      return 'Gönderilebilir';
-    case 'inactive':
-      return 'Pasif';
+      return 'Kurulumda';  
     default:
       return status;
   }

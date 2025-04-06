@@ -8,10 +8,7 @@ import {
   Activity, 
   InsertActivity,
   ServerStatus,
-  ActivityType,
-  Location,
-  InsertLocation,
-  LocationType
+  ActivityType
 } from "@shared/schema";
 
 // Interface for storage operations
@@ -27,14 +24,6 @@ export interface IStorage {
   // Note operations
   getServerNotes(serverId: number): Promise<ServerNote[]>;
   addServerNote(note: InsertServerNote): Promise<ServerNote>;
-  updateNote(id: number, noteUpdate: { note: string }): Promise<ServerNote | undefined>;
-  
-  // Location operations
-  getAllLocations(): Promise<Location[]>;
-  getLocationById(id: number): Promise<Location | undefined>;
-  createLocation(location: InsertLocation): Promise<Location>;
-  updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
-  deleteLocation(id: number): Promise<boolean>;
   
   // Transfer operations
   getServerTransfers(serverId: number): Promise<ServerTransfer[]>;
@@ -61,24 +50,20 @@ export class MemStorage implements IStorage {
   private serverNotes: Map<number, ServerNote[]>;
   private serverTransfers: Map<number, ServerTransfer[]>;
   private activities: Activity[];
-  private locations: Map<number, Location>;
   private serverIdCounter: number;
   private noteIdCounter: number;
   private transferIdCounter: number;
   private activityIdCounter: number;
-  private locationIdCounter: number;
 
   constructor() {
     this.servers = new Map();
     this.serverNotes = new Map();
     this.serverTransfers = new Map();
     this.activities = [];
-    this.locations = new Map();
     this.serverIdCounter = 1;
     this.noteIdCounter = 1;
     this.transferIdCounter = 1;
     this.activityIdCounter = 1;
-    this.locationIdCounter = 1;
     
     // Initialize with sample data
     this.initSampleData();
@@ -105,10 +90,7 @@ export class MemStorage implements IStorage {
     const server: Server = { 
       ...insertServer, 
       id,
-      createdAt: now,
-      ipAddress: insertServer.ipAddress || null,
-      username: insertServer.username || null,
-      password: insertServer.password || null
+      createdAt: now
     };
     
     this.servers.set(id, server);
@@ -201,92 +183,6 @@ export class MemStorage implements IStorage {
     
     return newNote;
   }
-  
-  async updateNote(id: number, noteUpdate: { note: string }): Promise<ServerNote | undefined> {
-    // Tüm notları tara
-    for (const entry of this.serverNotes.entries()) {
-      const serverId = entry[0];
-      const notes = entry[1];
-      const noteIndex = notes.findIndex(noteItem => noteItem.id === id);
-      
-      if (noteIndex !== -1) {
-        // Notu güncelle
-        const updatedNote = {
-          ...notes[noteIndex],
-          note: noteUpdate.note
-        };
-        
-        notes[noteIndex] = updatedNote;
-        this.serverNotes.set(serverId, notes);
-        
-        // Aktivite ekle
-        const server = this.servers.get(serverId);
-        this.addActivity({
-          serverId: serverId,
-          type: ActivityType.NOTE,
-          description: `Not güncellendi: ${server?.serverId || `ID: ${serverId}`}`
-        });
-        
-        return updatedNote;
-      }
-    }
-    
-    return undefined;
-  }
-
-  // Location operations
-  async getAllLocations(): Promise<Location[]> {
-    return Array.from(this.locations.values());
-  }
-
-  async getLocationById(id: number): Promise<Location | undefined> {
-    return this.locations.get(id);
-  }
-
-  async createLocation(insertLocation: InsertLocation): Promise<Location> {
-    const id = this.locationIdCounter++;
-    const now = new Date();
-    const location: Location = {
-      ...insertLocation,
-      id,
-      createdAt: now
-    };
-    
-    this.locations.set(id, location);
-    
-    // Activity eklenebilir, ancak server ID'si olmadığı için farklı bir yaklaşım gerekebilir.
-    // Bu örnekte activity eklemiyoruz.
-    
-    return location;
-  }
-
-  async updateLocation(id: number, locationUpdate: Partial<InsertLocation>): Promise<Location | undefined> {
-    const existingLocation = this.locations.get(id);
-    
-    if (!existingLocation) {
-      return undefined;
-    }
-    
-    const updatedLocation = {
-      ...existingLocation,
-      ...locationUpdate
-    };
-    
-    this.locations.set(id, updatedLocation);
-    
-    return updatedLocation;
-  }
-
-  async deleteLocation(id: number): Promise<boolean> {
-    // Lokasyonun kullanılıp kullanılmadığını kontrol et
-    const isLocationUsed = Array.from(this.servers.values()).some(server => server.location === this.locations.get(id)?.name);
-    
-    if (isLocationUsed) {
-      return false; // Kullanılan lokasyon silinemez
-    }
-    
-    return this.locations.delete(id);
-  }
 
   // Transfer operations
   async getServerTransfers(serverId: number): Promise<ServerTransfer[]> {
@@ -295,9 +191,9 @@ export class MemStorage implements IStorage {
 
   async getAllTransfers(): Promise<ServerTransfer[]> {
     const allTransfers: ServerTransfer[] = [];
-    this.serverTransfers.forEach((transfers) => {
+    for (const transfers of this.serverTransfers.values()) {
       allTransfers.push(...transfers);
-    });
+    }
     return allTransfers;
   }
 
@@ -305,12 +201,8 @@ export class MemStorage implements IStorage {
     const id = this.transferIdCounter++;
     const now = new Date();
     const newTransfer: ServerTransfer = { 
+      ...transfer, 
       id,
-      serverId: transfer.serverId,
-      fromLocation: transfer.fromLocation,
-      toLocation: transfer.toLocation,
-      transferDate: transfer.transferDate,
-      notes: transfer.notes || null,
       createdAt: now 
     };
     
@@ -356,15 +248,9 @@ export class MemStorage implements IStorage {
   async addActivity(insertActivity: InsertActivity): Promise<Activity> {
     const id = this.activityIdCounter++;
     const now = new Date();
-    
-    // Ensure serverId is not undefined
-    const serverId = insertActivity.serverId === undefined ? null : insertActivity.serverId;
-    
     const activity: Activity = { 
+      ...insertActivity, 
       id,
-      serverId,
-      type: insertActivity.type, 
-      description: insertActivity.description,
       createdAt: now 
     };
     
@@ -387,47 +273,6 @@ export class MemStorage implements IStorage {
   
   // Initialize with sample data
   private initSampleData() {
-    // Örnek lokasyon verileri
-    const locations: InsertLocation[] = [
-      {
-        name: "Ankara Depo",
-        address: "Ankara Çankaya, Merkez Cad. No:15",
-        type: LocationType.DEPOT,
-        capacity: 50
-      },
-      {
-        name: "İzmir Depo",
-        address: "İzmir Karşıyaka, Liman Sok. No:8",
-        type: LocationType.DEPOT,
-        capacity: 30
-      },
-      {
-        name: "İstanbul Merkez",
-        address: "İstanbul Levent, Büyükdere Cad. No:122",
-        type: LocationType.OFFICE,
-        capacity: 10
-      },
-      {
-        name: "Adana Saha Ofisi",
-        address: "Adana Seyhan, Atatürk Cad. No:45",
-        type: LocationType.FIELD,
-        capacity: 5
-      }
-    ];
-    
-    // Lokasyonları ekle
-    locations.forEach(location => {
-      const id = this.locationIdCounter++;
-      const now = new Date();
-      const createdAt = new Date(now.getTime() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000); // Random date within last 30 days
-      
-      this.locations.set(id, {
-        ...location,
-        id,
-        createdAt
-      });
-    });
-    
     const servers: InsertServer[] = [
       {
         serverId: "SRV-2023-091",
@@ -466,9 +311,6 @@ export class MemStorage implements IStorage {
       const newServer: Server = { 
         ...server, 
         id,
-        ipAddress: server.ipAddress || null,
-        username: server.username || null,
-        password: server.password || null,
         createdAt: new Date(now.getTime() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000) // Random date within last 10 days
       };
       
@@ -498,12 +340,8 @@ export class MemStorage implements IStorage {
       
       const id = this.transferIdCounter++;
       const newTransfer: ServerTransfer = { 
+        ...transfer, 
         id,
-        serverId: transfer.serverId,
-        fromLocation: transfer.fromLocation,
-        toLocation: transfer.toLocation,
-        transferDate: transfer.transferDate,
-        notes: transfer.notes || null,
         createdAt: new Date(transferDate.getTime() - 1000 * 60 * 60) // 1 hour before transfer
       };
       
@@ -525,309 +363,14 @@ export class MemStorage implements IStorage {
       const maintenanceDate = new Date();
       maintenanceDate.setDate(maintenanceDate.getDate() - 1);
       
-      const setupActivity: InsertActivity = {
+      this.addActivity({
         serverId: maintenanceServer.id,
         type: ActivityType.SETUP,
-        description: `SRV-2023-088 sunucusu kuruluma alındı`
-      };
-      
-      const activityId = this.activityIdCounter++;
-      const activity: Activity = {
-        id: activityId,
-        serverId: setupActivity.serverId || null,
-        type: setupActivity.type,
-        description: setupActivity.description,
+        description: `SRV-2023-088 sunucusu kuruluma alındı`,
         createdAt: maintenanceDate
-      };
-      
-      this.activities.push(activity);
-    }
-  }
-}
-
-// Import dependencies
-import { eq, desc } from 'drizzle-orm';
-import * as schema from '../shared/schema';
-
-// PostgreSQL storage implementation
-export class PostgresStorage implements IStorage {
-  constructor() {
-    // PostgreSQL storage otomatik olarak drizzle kullanır, constructor'da
-    // ekstra işlem yapılmasına gerek yok.
-  }
-
-  async getAllServers(): Promise<Server[]> {
-    const { db } = await import('./database');
-    return await db.select().from(schema.servers).orderBy(schema.servers.createdAt);
-  }
-
-  async getServerById(id: number): Promise<Server | undefined> {
-    const { db } = await import('./database');
-    const results = await db.select().from(schema.servers).where(
-      eq(schema.servers.id, id)
-    ).limit(1);
-    return results[0];
-  }
-
-  async getServerByServerId(serverId: string): Promise<Server | undefined> {
-    const { db } = await import('./database');
-    const results = await db.select().from(schema.servers).where(
-      eq(schema.servers.serverId, serverId)
-    ).limit(1);
-    return results[0];
-  }
-
-  async createServer(server: InsertServer): Promise<Server> {
-    const { db } = await import('./database');
-    const result = await db.insert(schema.servers).values(server).returning();
-    const createdServer = result[0];
-    
-    // Add activity
-    await this.addActivity({
-      serverId: createdServer.id,
-      type: ActivityType.ADD,
-      description: `Sunucu eklendi: ${createdServer.serverId}`
-    });
-    
-    return createdServer;
-  }
-
-  async updateServer(id: number, serverUpdate: Partial<InsertServer>): Promise<Server | undefined> {
-    const { db } = await import('./database');
-    const existingServer = await this.getServerById(id);
-    
-    if (!existingServer) {
-      return undefined;
-    }
-    
-    const result = await db.update(schema.servers)
-      .set(serverUpdate)
-      .where(eq(schema.servers.id, id))
-      .returning();
-    
-    const updatedServer = result[0];
-    
-    // Add activity if status changed
-    if (serverUpdate.status && serverUpdate.status !== existingServer.status) {
-      await this.addActivity({
-        serverId: id,
-        type: ActivityType.SETUP,
-        description: `Sunucu durumu değiştirildi: ${existingServer.status} -> ${serverUpdate.status}`
       });
     }
-    
-    return updatedServer;
-  }
-
-  async deleteServer(id: number): Promise<boolean> {
-    const { db } = await import('./database');
-    const server = await this.getServerById(id);
-    
-    if (!server) {
-      return false;
-    }
-    
-    // Delete server
-    await db.delete(schema.servers).where(eq(schema.servers.id, id));
-    
-    // Add activity
-    await this.addActivity({
-      serverId: id,
-      type: ActivityType.DELETE,
-      description: `Sunucu silindi: ${server.serverId}`
-    });
-    
-    return true;
-  }
-
-  async getServerNotes(serverId: number): Promise<ServerNote[]> {
-    const { db } = await import('./database');
-    return await db.select().from(schema.serverNotes)
-      .where(eq(schema.serverNotes.serverId, serverId))
-      .orderBy(desc(schema.serverNotes.createdAt));
-  }
-
-  async addServerNote(note: InsertServerNote): Promise<ServerNote> {
-    const { db } = await import('./database');
-    const result = await db.insert(schema.serverNotes).values(note).returning();
-    const newNote = result[0];
-    
-    // Add activity
-    const server = await this.getServerById(note.serverId);
-    await this.addActivity({
-      serverId: note.serverId,
-      type: ActivityType.NOTE,
-      description: `Not eklendi: ${server?.serverId || `ID: ${note.serverId}`}`
-    });
-    
-    return newNote;
-  }
-  
-  async updateNote(id: number, noteUpdate: { note: string }): Promise<ServerNote | undefined> {
-    const { db } = await import('./database');
-    
-    // Önce notu bul
-    const results = await db.select().from(schema.serverNotes).where(eq(schema.serverNotes.id, id)).limit(1);
-    const existingNote = results[0];
-    
-    if (!existingNote) {
-      return undefined;
-    }
-    
-    // Notu güncelle
-    const updatedNotes = await db.update(schema.serverNotes)
-      .set({ note: noteUpdate.note })
-      .where(eq(schema.serverNotes.id, id))
-      .returning();
-    
-    if (updatedNotes.length === 0) {
-      return undefined;
-    }
-    
-    const updatedNote = updatedNotes[0];
-    
-    // Aktivite ekle
-    const server = await this.getServerById(updatedNote.serverId);
-    await this.addActivity({
-      serverId: updatedNote.serverId,
-      type: ActivityType.NOTE,
-      description: `Not güncellendi: ${server?.serverId || `ID: ${updatedNote.serverId}`}`
-    });
-    
-    return updatedNote;
-  }
-
-  // Location operations
-  async getAllLocations(): Promise<Location[]> {
-    const { db } = await import('./database');
-    return await db.select().from(schema.locations).orderBy(schema.locations.name);
-  }
-
-  async getLocationById(id: number): Promise<Location | undefined> {
-    const { db } = await import('./database');
-    const results = await db.select().from(schema.locations).where(
-      eq(schema.locations.id, id)
-    ).limit(1);
-    return results[0];
-  }
-
-  async createLocation(location: InsertLocation): Promise<Location> {
-    const { db } = await import('./database');
-    const result = await db.insert(schema.locations).values(location).returning();
-    return result[0];
-  }
-
-  async updateLocation(id: number, locationUpdate: Partial<InsertLocation>): Promise<Location | undefined> {
-    const { db } = await import('./database');
-    const existingLocation = await this.getLocationById(id);
-    
-    if (!existingLocation) {
-      return undefined;
-    }
-    
-    const result = await db.update(schema.locations)
-      .set(locationUpdate)
-      .where(eq(schema.locations.id, id))
-      .returning();
-    
-    return result[0];
-  }
-
-  async deleteLocation(id: number): Promise<boolean> {
-    const { db } = await import('./database');
-    
-    // Lokasyonun kullanılıp kullanılmadığını kontrol et
-    const location = await this.getLocationById(id);
-    if (!location) {
-      return false;
-    }
-    
-    const servers = await this.getAllServers();
-    const isLocationUsed = servers.some(server => server.location === location.name);
-    
-    if (isLocationUsed) {
-      return false; // Kullanılan lokasyon silinemez
-    }
-    
-    await db.delete(schema.locations).where(eq(schema.locations.id, id));
-    return true;
-  }
-
-  async getServerTransfers(serverId: number): Promise<ServerTransfer[]> {
-    const { db } = await import('./database');
-    return await db.select().from(schema.serverTransfers)
-      .where(eq(schema.serverTransfers.serverId, serverId))
-      .orderBy(desc(schema.serverTransfers.createdAt));
-  }
-
-  async getAllTransfers(): Promise<ServerTransfer[]> {
-    const { db } = await import('./database');
-    return await db.select().from(schema.serverTransfers)
-      .orderBy(desc(schema.serverTransfers.createdAt));
-  }
-
-  async createTransfer(transfer: InsertServerTransfer): Promise<ServerTransfer> {
-    const { db } = await import('./database');
-    const result = await db.insert(schema.serverTransfers).values(transfer).returning();
-    const newTransfer = result[0];
-    
-    // Update server location and status
-    await this.updateServer(transfer.serverId, {
-      location: transfer.toLocation,
-      status: ServerStatus.TRANSIT
-    });
-    
-    // Add activity
-    await this.addActivity({
-      serverId: transfer.serverId,
-      type: ActivityType.TRANSFER,
-      description: `${transfer.fromLocation}'dan ${transfer.toLocation}'a transfer başlatıldı`
-    });
-    
-    return newTransfer;
-  }
-
-  async getAllActivities(limit?: number): Promise<Activity[]> {
-    const { db } = await import('./database');
-    let query = db.select().from(schema.activities)
-      .orderBy(desc(schema.activities.createdAt));
-      
-    if (limit) {
-      query = query.limit(limit);
-    }
-    
-    return await query;
-  }
-
-  async getServerActivities(serverId: number): Promise<Activity[]> {
-    const { db } = await import('./database');
-    return await db.select().from(schema.activities)
-      .where(eq(schema.activities.serverId, serverId))
-      .orderBy(desc(schema.activities.createdAt));
-  }
-
-  async addActivity(activity: InsertActivity): Promise<Activity> {
-    const { db } = await import('./database');
-    const result = await db.insert(schema.activities).values(activity).returning();
-    return result[0];
-  }
-
-  async getServerStats(): Promise<{ total: number; active: number; transit: number; setup: number; field: number; }> {
-    const { db } = await import('./database');
-    const servers = await this.getAllServers();
-    
-    return {
-      total: servers.length,
-      active: servers.filter(s => s.status === ServerStatus.ACTIVE).length,
-      transit: servers.filter(s => s.status === ServerStatus.TRANSIT).length,
-      setup: servers.filter(s => s.status === ServerStatus.SETUP).length,
-      field: servers.filter(s => s.status === ServerStatus.FIELD).length
-    };
   }
 }
 
-// In memory storage yedekleme
-export const memStorage = new MemStorage();
-
-// Default olarak artık PostgreSQL depolama kullanılıyor
-export const storage = new PostgresStorage();
+export const storage = new MemStorage();
