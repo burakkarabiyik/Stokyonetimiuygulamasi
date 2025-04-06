@@ -27,5 +27,5 @@ EXPOSE 5000
 RUN chmod +x docker-entrypoint.sh
 ENTRYPOINT ["./docker-entrypoint.sh"]
 
-# Varsayılan komut
-CMD ["node", "index.js"]
+# Varsayılan komut - doğru yolu kullan
+CMD ["node", "dist/index.js"]
