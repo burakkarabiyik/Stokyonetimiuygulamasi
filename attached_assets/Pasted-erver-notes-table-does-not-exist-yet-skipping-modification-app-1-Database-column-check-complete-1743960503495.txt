@@ -1,0 +1,104 @@
+erver notes table does not exist yet, skipping modification
+app-1  | Database column check completed successfully
+app-1 exited with code 0
+app-1  |
+app-1  | > rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | Checking for missing columns and fixing if needed...
+app-1  | Initializing database...
+app-1  | Running migrations from both directories to ensure compatibility...
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+db-1   | 2025-04-06 17:28:08.111 UTC [70] LOG:  could not receive data from client: Connection reset by peer
+app-1  |   code: '42P06',
+app-1  |   message: 'schema "drizzle" already exists, skipping',
+app-1  |   file: 'schemacmds.c',
+app-1  |   line: '131',
+app-1  |   routine: 'CreateSchemaCommand'
+app-1  | }
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+app-1  |   code: '42P07',
+app-1  |   message: 'relation "drizzle_migrations" already exists, skipping',
+app-1  |   file: 'parse_utilcmd.c',
+app-1  |   line: '207',
+app-1  |   routine: 'transformCreateStmt'
+app-1  | }
+app-1  | Servers table does not exist yet, skipping modification
+app-1  | Users table does not exist yet, skipping modification
+app-1  | Server notes table does not exist yet, skipping modification
+app-1  | Database column check completed successfully
+app-1 exited with code 0
+app-1  |
+app-1  | > rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | Checking for missing columns and fixing if needed...
+app-1  | Initializing database...
+app-1  | Running migrations from both directories to ensure compatibility...
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+db-1   | 2025-04-06 17:28:09.013 UTC [73] LOG:  could not receive data from client: Connection reset by peer
+app-1  |   code: '42P06',
+app-1  |   message: 'schema "drizzle" already exists, skipping',
+app-1  |   file: 'schemacmds.c',
+app-1  |   line: '131',
+app-1  |   routine: 'CreateSchemaCommand'
+app-1  | }
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+app-1  |   code: '42P07',
+app-1  |   message: 'relation "drizzle_migrations" already exists, skipping',
+app-1  |   file: 'parse_utilcmd.c',
+app-1  |   line: '207',
+app-1  |   routine: 'transformCreateStmt'
+app-1  | }
+app-1  | Servers table does not exist yet, skipping modification
+app-1  | Users table does not exist yet, skipping modification
+app-1  | Server notes table does not exist yet, skipping modification
+app-1 exited with code 0
+app-1  | Database column check completed successfully
+app-1  |
+app-1  | > rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | Checking for missing columns and fixing if needed...
+app-1  | Initializing database...
+app-1  | Running migrations from both directories to ensure compatibility...
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+db-1   | 2025-04-06 17:28:10.052 UTC [74] LOG:  could not receive data from client: Connection reset by peer
+app-1  |   code: '42P06',
+db-1   | 2025-04-06 17:28:10.052 UTC [74] LOG:  unexpected EOF on client connection with an open transaction
+app-1  |   message: 'schema "drizzle" already exists, skipping',
+app-1  |   file: 'schemacmds.c',
+app-1  |   line: '131',
+app-1  |   routine: 'CreateSchemaCommand'
+app-1  | }
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+app-1  |   code: '42P07',
+app-1  |   message: 'relation "drizzle_migrations" already exists, skipping',
+app-1  |   file: 'parse_utilcmd.c',
+app-1  |   line: '207',
+app-1  |   routine: 'transformCreateStmt'
+app-1  | }
+app-1  | Servers table does not exist yet, skipping modification
+app-1  | Users table does not exist yet, skipping modification
+app-1  | Server notes table does not exist yet, skipping modification
+app-1  | Database column check completed successfully
+app-1 exited with code 0
+app-1  |
+app-1  | > rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | Checking for missing columns and fixing if needed...
+app-1  | Initializing database...
+app-1  | Running migrations from both directories to ens

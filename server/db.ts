@@ -32,23 +32,106 @@ export async function initializeDatabase() {
     
     // Run migrations (this will create tables if they don't exist)
     try {
-      console.log('Running migrations from both directories to ensure compatibility...');
+      console.log('Running migrations to create database tables...');
       
-      // First try with the 'migrations' folder
-      try {
-        await migrate(db, { 
-          migrationsFolder: './migrations',
-          migrationsTable: 'drizzle_migrations'
-        });
-        console.log('Migrations from ./migrations completed');
-      } catch (error) {
-        console.warn('Error running migrations from ./migrations:', error);
+      // Try different migration folder paths to handle Docker vs local env differences
+      const potentialMigrationPaths = [
+        './migrations',
+        '/app/migrations',
+        '../migrations',
+        '/migrations',
+        './drizzle/migrations'
+      ];
+      
+      let migrationSuccess = false;
+      
+      // Try each potential path until one works
+      for (const migrationPath of potentialMigrationPaths) {
+        try {
+          console.log(`Attempting migrations from ${migrationPath}...`);
+          
+          // Check if the directory exists before attempting migration
+          const fs = require('fs');
+          
+          if (!fs.existsSync(migrationPath)) {
+            console.log(`Path ${migrationPath} does not exist, skipping...`);
+            continue;
+          }
+          
+          // Check if there are SQL files in the directory
+          const files = fs.readdirSync(migrationPath);
+          const sqlFiles = files.filter(file => file.endsWith('.sql'));
+          
+          if (sqlFiles.length === 0) {
+            console.log(`No SQL files found in ${migrationPath}, skipping...`);
+            continue;
+          }
+          
+          console.log(`Found ${sqlFiles.length} SQL migration files in ${migrationPath}`);
+          
+          // Run the migration with this path
+          await migrate(db, { 
+            migrationsFolder: migrationPath,
+            migrationsTable: 'drizzle_migrations'
+          });
+          
+          console.log(`Migrations from ${migrationPath} completed successfully`);
+          migrationSuccess = true;
+          break;
+        } catch (error) {
+          console.warn(`Error running migrations from ${migrationPath}:`, error);
+        }
       }
       
-      // Since we're in Docker, the migration path might be different
-      // We won't attempt to use the drizzle folder since it doesn't exist
-      console.log('Skipping ./drizzle migrations as this folder does not exist');
-      console.log('Migrations completed successfully');
+      if (!migrationSuccess) {
+        console.warn('All migration attempts failed. Will proceed to manual table creation...');
+        
+        // As a last resort, manually run the SQL to create tables
+        console.log('Attempting to manually create tables...');
+        
+        try {
+          // This will only run if all migration attempts failed
+          // Read the base migration file to extract table creation statements
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Search for any SQL file to use as a manual migration
+          const searchPaths = [
+            './migrations', 
+            '/app/migrations', 
+            '../migrations',
+            './drizzle/migrations'
+          ];
+          
+          let sqlContent = '';
+          let sqlFileFound = false;
+          
+          for (const dirPath of searchPaths) {
+            if (fs.existsSync(dirPath)) {
+              const files = fs.readdirSync(dirPath);
+              for (const file of files) {
+                if (file.endsWith('.sql')) {
+                  sqlContent = fs.readFileSync(path.join(dirPath, file), 'utf8');
+                  console.log(`Found SQL file: ${path.join(dirPath, file)}`);
+                  sqlFileFound = true;
+                  break;
+                }
+              }
+              if (sqlFileFound) break;
+            }
+          }
+          
+          if (sqlFileFound) {
+            // Execute the SQL content directly
+            await db.execute(sqlContent);
+            console.log('Manual table creation completed');
+          } else {
+            console.error('No SQL migration files found for manual creation');
+          }
+        } catch (manualError) {
+          console.error('Error during manual table creation:', manualError);
+        }
+      }
     } catch (migrateError) {
       console.error('Migration error:', migrateError);
       console.warn('Attempting to continue despite migration error...');

@@ -16,18 +16,40 @@ services:
       - PGHOST=db
       - PGPORT=5432
       - SESSION_SECRET=${SESSION_SECRET:-your_secret_key_here}
+      - DB_INIT_RETRY_ATTEMPTS=10
+      - DB_INIT_RETRY_DELAY=5
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
+    restart: on-failure:5
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
     networks:
       - server-network
+    entrypoint: >
+      sh -c '
+      echo "Waiting for PostgreSQL...";
+      RETRIES=30;
+      until nc -z db 5432 || [ $$RETRIES -eq 0 ]; do
+        echo "Waiting for PostgreSQL server, $$((RETRIES--)) remaining attempts...";
+        sleep 3;
+      done;
+      
+      if [ $$RETRIES -eq 0 ]; then
+        echo "Error: Could not connect to PostgreSQL";
+        exit 1;
+      fi;
+      
+      echo "Running migrations...";
+      npm run db:push;
+      
+      echo "Starting the application...";
+      exec npm start;
+      '
 
   db:
     image: postgres:15-alpine

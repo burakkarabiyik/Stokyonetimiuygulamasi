@@ -39,29 +39,71 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize database if needed
+  // Always use database in production
   if (process.env.USE_DATABASE === 'true' || process.env.NODE_ENV === 'production') {
-    try {
-      // First initialize the database - this will create tables
-      await initializeDatabase();
-      log('Database initialized successfully');
-      
-      // AFTER tables are created, try to fix columns
+    log('Starting database initialization sequence...');
+    
+    let retryCount = 0;
+    const maxRetries = 5;
+    
+    // Function to initialize and fix database with retries
+    const setupDatabase = async (): Promise<boolean> => {
       try {
-        // Wait a moment to ensure tables are fully created
-        setTimeout(async () => {
-          try {
-            await fixDatabaseColumns();
-            log('Database column check and fix completed');
-          } catch (columnErr) {
-            log(`Error fixing database columns: ${columnErr}`, 'error');
-          }
-        }, 2000);
-      } catch (fixErr) {
-        log(`Error scheduling column fixes: ${fixErr}`, 'error');
+        // First initialize the database - this will create tables
+        const dbInitResult = await initializeDatabase();
+        
+        if (!dbInitResult) {
+          log('Database initialization returned false, will retry...', 'warn');
+          return false;
+        }
+        
+        log('Database initialized successfully, waiting for tables to be ready...');
+        
+        // Wait for tables to be fully created before fixing columns
+        return new Promise((resolve) => {
+          setTimeout(async () => {
+            try {
+              const fixResult = await fixDatabaseColumns();
+              
+              if (fixResult) {
+                log('Database column check and fix completed successfully');
+                resolve(true);
+              } else {
+                log('Database column fix failed, will retry...', 'warn');
+                resolve(false);
+              }
+            } catch (columnErr) {
+              log(`Error fixing database columns: ${columnErr}`, 'error');
+              resolve(false);
+            }
+          }, 3000); // Increased delay for Docker environments
+        });
+      } catch (err) {
+        log(`Database initialization error: ${err}`, 'error');
+        return false;
       }
-    } catch (err) {
-      log(`Database initialization error: ${err}`, 'error');
+    };
+    
+    // Retry loop for database setup
+    let success = false;
+    while (!success && retryCount < maxRetries) {
+      log(`Database setup attempt ${retryCount + 1}/${maxRetries}...`);
+      success = await setupDatabase();
+      
+      if (!success) {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          const delay = 5000 * retryCount; // Incremental backoff
+          log(`Will retry database setup in ${delay/1000} seconds...`, 'warn');
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    if (!success) {
+      log('Failed to initialize database after multiple attempts. Continuing with limited functionality.', 'error');
+    } else {
+      log('Database setup completed successfully');
     }
   }
 
