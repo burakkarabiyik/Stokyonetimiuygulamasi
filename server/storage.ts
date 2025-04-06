@@ -61,7 +61,10 @@ export interface IStorage {
   
   // Note operations
   getServerNotes(serverId: number): Promise<ServerNote[]>;
+  getServerNoteById(id: number): Promise<ServerNote | undefined>;
   addServerNote(note: InsertServerNote): Promise<ServerNote>;
+  updateServerNote(id: number, note: Partial<InsertServerNote>): Promise<ServerNote | undefined>;
+  deleteServerNote(id: number): Promise<boolean>;
   
   // Transfer operations
   getServerTransfers(serverId: number): Promise<ServerTransfer[]>;
@@ -430,6 +433,16 @@ export class MemStorage implements IStorage {
   async getServerNotes(serverId: number): Promise<ServerNote[]> {
     return this.serverNotes.get(serverId) || [];
   }
+  
+  async getServerNoteById(id: number): Promise<ServerNote | undefined> {
+    for (const notes of this.serverNotes.values()) {
+      const note = notes.find(n => n.id === id);
+      if (note) {
+        return note;
+      }
+    }
+    return undefined;
+  }
 
   async addServerNote(note: InsertServerNote): Promise<ServerNote> {
     const id = this.noteIdCounter++;
@@ -453,6 +466,70 @@ export class MemStorage implements IStorage {
     });
     
     return newNote;
+  }
+  
+  async updateServerNote(id: number, noteUpdate: Partial<InsertServerNote>): Promise<ServerNote | undefined> {
+    // Önce notu bul
+    let foundNote: ServerNote | undefined;
+    let serverId: number | undefined;
+    
+    for (const [serverIdKey, notes] of this.serverNotes.entries()) {
+      const noteIndex = notes.findIndex(n => n.id === id);
+      if (noteIndex >= 0) {
+        foundNote = notes[noteIndex];
+        serverId = serverIdKey;
+        break;
+      }
+    }
+    
+    if (!foundNote || !serverId) {
+      return undefined;
+    }
+    
+    // Notu güncelle
+    const updatedNote: ServerNote = {
+      ...foundNote,
+      ...noteUpdate
+    };
+    
+    // Not listesini güncelle
+    const notes = this.serverNotes.get(serverId) || [];
+    const updatedNotes = notes.map(n => n.id === id ? updatedNote : n);
+    this.serverNotes.set(serverId, updatedNotes);
+    
+    // Activity ekle
+    this.addActivity({
+      serverId: serverId,
+      type: ActivityType.NOTE,
+      description: `Not güncellendi: ${updatedNote.note?.substring(0, 30)}${updatedNote.note && updatedNote.note.length > 30 ? '...' : ''}`
+    });
+    
+    return updatedNote;
+  }
+  
+  async deleteServerNote(id: number): Promise<boolean> {
+    // Notu bul ve sil
+    for (const [serverId, notes] of this.serverNotes.entries()) {
+      const noteIndex = notes.findIndex(n => n.id === id);
+      if (noteIndex >= 0) {
+        const note = notes[noteIndex];
+        
+        // Listeden kaldır
+        notes.splice(noteIndex, 1);
+        this.serverNotes.set(serverId, notes);
+        
+        // Activity ekle
+        this.addActivity({
+          serverId: serverId,
+          type: ActivityType.DELETE,
+          description: `Not silindi: ${note.note?.substring(0, 30)}${note.note && note.note.length > 30 ? '...' : ''}`
+        });
+        
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   // Transfer operations

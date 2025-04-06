@@ -607,6 +607,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // PUT /api/server-notes/:id - Update a server note
+  app.put("/api/server-notes/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz not ID" });
+      }
+      
+      const noteUpdate = insertNoteSchema.partial().parse(req.body);
+      
+      // Validate that the currently signed in user is the one who created the note
+      // or is an admin
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Bu işlem için giriş yapmalısınız" });
+      }
+      
+      const updatedNote = await storage.updateServerNote(id, noteUpdate);
+      if (!updatedNote) {
+        return res.status(404).json({ error: "Not bulunamadı" });
+      }
+      
+      res.json(updatedNote);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // DELETE /api/server-notes/:id - Delete a server note
+  app.delete("/api/server-notes/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz not ID" });
+      }
+      
+      // Validate that the currently signed in user is the one who created the note
+      // or is an admin
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Bu işlem için giriş yapmalısınız" });
+      }
+      
+      const deleted = await storage.deleteServerNote(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Not bulunamadı" });
+      }
+      
+      res.status(204).end();
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
   // GET /api/servers/:id/transfers - Get transfers for a server
   app.get("/api/servers/:id/transfers", async (req: Request, res: Response) => {
     try {

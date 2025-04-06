@@ -293,6 +293,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(serverNotes.createdAt));
   }
   
+  async getServerNoteById(id: number): Promise<ServerNote | undefined> {
+    const [note] = await db
+      .select()
+      .from(serverNotes)
+      .where(eq(serverNotes.id, id));
+    return note;
+  }
+  
   async addServerNote(noteData: InsertServerNote): Promise<ServerNote> {
     const [note] = await db.insert(serverNotes).values({
       ...noteData,
@@ -309,6 +317,55 @@ export class DatabaseStorage implements IStorage {
     });
     
     return note;
+  }
+  
+  async updateServerNote(id: number, noteUpdate: Partial<InsertServerNote>): Promise<ServerNote | undefined> {
+    // İlk önce notu bul
+    const note = await this.getServerNoteById(id);
+    if (!note) return undefined;
+    
+    // Notu güncelle
+    const [updatedNote] = await db
+      .update(serverNotes)
+      .set(noteUpdate)
+      .where(eq(serverNotes.id, id))
+      .returning();
+    
+    if (!updatedNote) return undefined;
+    
+    // Activity ekle
+    await this.addActivity({
+      serverId: updatedNote.serverId,
+      type: 'note',
+      description: `Not güncellendi: ${updatedNote.note?.substring(0, 30)}${updatedNote.note && updatedNote.note.length > 30 ? '...' : ''}`,
+      userId: note.createdBy
+    });
+    
+    return updatedNote;
+  }
+  
+  async deleteServerNote(id: number): Promise<boolean> {
+    // Notu bul
+    const note = await this.getServerNoteById(id);
+    if (!note) return false;
+    
+    // Notu sil
+    const result = await db
+      .delete(serverNotes)
+      .where(eq(serverNotes.id, id))
+      .returning();
+    
+    if (result.length === 0) return false;
+    
+    // Activity ekle
+    await this.addActivity({
+      serverId: note.serverId,
+      type: 'delete',
+      description: `Not silindi: ${note.note?.substring(0, 30)}${note.note && note.note.length > 30 ? '...' : ''}`,
+      userId: note.createdBy
+    });
+    
+    return true;
   }
   
   // Transfer operations

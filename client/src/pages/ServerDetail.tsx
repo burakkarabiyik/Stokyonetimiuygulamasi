@@ -12,6 +12,30 @@ import EditServerModal from "@/components/EditServerModal";
 import ServerDetailModal from "@/components/ServerDetailModal";
 import { formatDate } from "@/lib/utils";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+} from "@/components/ui/alert-dialog";
+
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+
 export default function ServerDetail() {
   const [, navigate] = useLocation();
   const { id } = useParams();
@@ -19,6 +43,9 @@ export default function ServerDetail() {
   const { user } = useAuth();
   
   const [noteText, setNoteText] = useState("");
+  const [editingNote, setEditingNote] = useState<ServerNote | null>(null);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [confirmDeleteNoteOpen, setConfirmDeleteNoteOpen] = useState(false);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState(false);
@@ -41,6 +68,11 @@ export default function ServerDetail() {
   
   const { data: serverDetails, isLoading: detailsLoading } = useQuery<ServerDetailType[]>({
     queryKey: [`/api/servers/${id}/details`],
+    enabled: !!server
+  });
+  
+  const { data: serverNotes, isLoading: notesLoading } = useQuery<ServerNote[]>({
+    queryKey: [`/api/servers/${id}/notes`],
     enabled: !!server
   });
   
@@ -71,6 +103,58 @@ export default function ServerDetail() {
         variant: "destructive",
         title: "Hata",
         description: "Not eklenirken bir hata oluştu.",
+      });
+    }
+  });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ id: noteId, note }: { id: number, note: string }) => {
+      await apiRequest('PUT', `/api/server-notes/${noteId}`, { note });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/notes`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/activities`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/activities'] });
+      
+      toast({
+        title: "Not güncellendi",
+        description: "Sunucu notu başarıyla güncellendi.",
+      });
+      
+      setEditingNote(null);
+      setNoteDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Not güncellenirken bir hata oluştu.",
+      });
+    }
+  });
+  
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      await apiRequest('DELETE', `/api/server-notes/${noteId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/notes`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${id}/activities`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/activities'] });
+      
+      toast({
+        title: "Not silindi",
+        description: "Sunucu notu başarıyla silindi.",
+      });
+      
+      setEditingNote(null);
+      setConfirmDeleteNoteOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Not silinirken bir hata oluştu.",
       });
     }
   });
@@ -110,6 +194,25 @@ export default function ServerDetail() {
     e.preventDefault();
     if (noteText.trim()) {
       addNoteMutation.mutate(noteText);
+    }
+  };
+
+  const handleEditNote = (note: ServerNote) => {
+    setEditingNote(note);
+    setNoteText(note.note);
+    setNoteDialogOpen(true);
+  };
+
+  const handleUpdateNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingNote && noteText.trim()) {
+      updateNoteMutation.mutate({ id: editingNote.id, note: noteText });
+    }
+  };
+
+  const handleDeleteNoteConfirm = () => {
+    if (editingNote) {
+      deleteNoteMutation.mutate(editingNote.id);
     }
   };
   
@@ -389,6 +492,84 @@ export default function ServerDetail() {
         </div>
       </div>
       
+      {/* Server Notes */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">Sunucu Notları</h2>
+        </div>
+        
+        {notesLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-500">Yükleniyor...</div>
+          </div>
+        ) : !serverNotes || serverNotes.length === 0 ? (
+          <div className="bg-white shadow rounded-lg p-6 text-center text-gray-500">
+            <p>Bu sunucuya henüz not eklenmemiş.</p>
+            <p className="mt-2">Sağ üst kısımdaki "Not Ekle" formunu kullanarak not ekleyebilirsiniz.</p>
+          </div>
+        ) : (
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <ul className="divide-y divide-gray-200">
+              {serverNotes.map((note) => (
+                <li key={note.id} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700">{note.note}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {formatDate(note.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => handleEditNote(note)}
+                        className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                      >
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          className="h-5 w-5" 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingNote(note);
+                          setConfirmDeleteNoteOpen(true);
+                        }}
+                        className="text-gray-400 hover:text-red-500 focus:outline-none"
+                      >
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          className="h-5 w-5" 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      
       {/* Server Virtual Machines */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
@@ -490,6 +671,70 @@ export default function ServerDetail() {
         serverId={parseInt(id)}
         detail={selectedDetail}
       />
+      
+      {/* Edit Note Dialog */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Not Düzenle</DialogTitle>
+            <DialogDescription>
+              Sunucu notunu düzenleyin.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateNote}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="note">Not</Label>
+                <Textarea
+                  id="note"
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="Sunucu ile ilgili not..."
+                  className="resize-none"
+                  rows={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setNoteDialogOpen(false)}
+              >
+                İptal
+              </Button>
+              <Button 
+                type="submit"
+                disabled={updateNoteMutation.isPending || !noteText.trim()}
+              >
+                {updateNoteMutation.isPending ? "Kaydediliyor..." : "Kaydet"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Note Confirmation Dialog */}
+      <AlertDialog open={confirmDeleteNoteOpen} onOpenChange={setConfirmDeleteNoteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Not Silme</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu notu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteNoteConfirm}
+              disabled={deleteNoteMutation.isPending}
+              className="bg-red-600 focus:ring-red-600"
+            >
+              {deleteNoteMutation.isPending ? "Siliniyor..." : "Sil"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
