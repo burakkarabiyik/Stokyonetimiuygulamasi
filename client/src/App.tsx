@@ -7,6 +7,7 @@ import Dashboard from "@/pages/Dashboard";
 import Servers from "@/pages/Servers";
 import ServerDetail from "@/pages/ServerDetail";
 import Locations from "@/pages/Locations";
+import Reports from "@/pages/Reports";
 import Sidebar from "@/components/Sidebar";
 import { useState } from "react";
 import { useAuth, AuthProvider } from "@/hooks/use-auth";
@@ -135,6 +136,7 @@ function Router() {
             <ProtectedRoute path="/servers" component={Servers} />
             <ProtectedRoute path="/servers/:id" component={ServerDetail} />
             <ProtectedRoute path="/locations" component={Locations} />
+            <ProtectedRoute path="/reports" component={Reports} />
             <Route component={NotFound} />
           </Switch>
         </main>

@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import StatsCard from "@/components/StatsCard";
-import { Server, Activity } from "@shared/schema";
+import { Server, Activity, ServerStatus } from "@shared/schema";
 import { formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2, AlertCircle, Server as ServerIcon, CircleCheck, Truck, RotateCw } from "lucide-react";
 
 export default function Dashboard() {
   const { toast } = useToast();
   
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<any>({
     queryKey: ['/api/stats'],
   });
   
@@ -108,78 +109,75 @@ export default function Dashboard() {
   };
   
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">Dashboard</h2>
-        <p className="mt-1 text-sm text-gray-500">Depo ve sunucu durumlarına genel bakış</p>
+    <div className="page-container animate-fade-in">
+      <div className="page-header">
+        <div>
+          <h1 className="text-gradient">Sunucu Yönetim Paneli</h1>
+          <p className="mt-2 text-gray-600">Depo ve sunucu durumlarına genel bakış</p>
+        </div>
+        
+        <div className="flex gap-2">
+          <Link to="/servers">
+            <button className="btn-primary">
+              <ServerIcon className="mr-2 h-4 w-4" />
+              Sunucuları Görüntüle
+            </button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mt-6">
         <StatsCard 
           title="Toplam Sunucu"
           value={statsLoading ? "..." : stats?.total.toString() || "0"}
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-            </svg>
-          }
-          bgColor="bg-primary-100"
-          iconColor="text-primary-600"
+          icon={<ServerIcon className="h-6 w-6" />}
+          bgColor="bg-blue-50"
+          iconColor="text-blue-600"
         />
         
         <StatsCard 
-          title="Mevcut Sunucular"
+          title="Aktif Sunucular"
           value={statsLoading ? "..." : stats?.active.toString() || "0"}
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-          bgColor="bg-green-100"
+          icon={<CircleCheck className="h-6 w-6" />}
+          bgColor="bg-green-50"
           iconColor="text-green-600"
         />
         
         <StatsCard 
           title="Transfer Sürecinde"
           value={statsLoading ? "..." : stats?.transit.toString() || "0"}
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-          bgColor="bg-yellow-100"
-          iconColor="text-yellow-600"
+          icon={<Truck className="h-6 w-6" />}
+          bgColor="bg-amber-50"
+          iconColor="text-amber-600"
         />
         
         <StatsCard 
           title="Kurulumda"
           value={statsLoading ? "..." : stats?.setup.toString() || "0"}
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          }
-          bgColor="bg-red-100"
-          iconColor="text-red-600"
+          icon={<RotateCw className="h-6 w-6" />}
+          bgColor="bg-purple-50"
+          iconColor="text-purple-600"
         />
       </div>
 
       {/* Recent Activity & Server List Section */}
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Recent Activity */}
-        <div className="lg:col-span-1 bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Son Hareketler</h3>
+        <div className="lg:col-span-1 card p-0">
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="section-header mb-0">Son Aktiviteler</h3>
           </div>
-          <div className="px-4 py-3 sm:px-6 max-h-96 overflow-y-auto">
+          <div className="p-4 max-h-96 overflow-y-auto">
             {activitiesLoading ? (
-              <div className="py-4 text-center text-gray-500">Yükleniyor...</div>
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
             ) : activities && activities.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-100">
                 {activities.map(activity => (
-                  <li key={activity.id} className="py-3">
-                    <div className="flex space-x-3">
+                  <li key={activity.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex gap-4">
                       <div className="flex-shrink-0">
                         {getActivityIcon(activity.type)}
                       </div>
@@ -187,7 +185,7 @@ export default function Dashboard() {
                         <p className="text-sm font-medium text-gray-900">
                           {activity.description}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs text-gray-500 mt-1">
                           {formatDate(activity.createdAt)}
                         </p>
                       </div>
@@ -196,57 +194,83 @@ export default function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <div className="py-4 text-center text-gray-500">Henüz aktivite bulunmuyor</div>
+              <div className="py-8 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                  <AlertCircle className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500">Henüz aktivite bulunmuyor</p>
+              </div>
             )}
           </div>
         </div>
 
         {/* Server List */}
-        <div className="lg:col-span-2 bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Son Eklenen Sunucular</h3>
+        <div className="lg:col-span-2 card p-0">
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="section-header mb-0">Son Eklenen Sunucular</h3>
             <Link to="/servers">
-              <button className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+              <button className="btn-secondary py-1 px-3 h-8 text-xs">
                 Tümünü Gör
               </button>
             </Link>
           </div>
           <div className="overflow-x-auto">
             {serversLoading ? (
-              <div className="py-4 text-center text-gray-500">Yükleniyor...</div>
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
             ) : recentServers && recentServers.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lokasyon</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durum</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ekleme Tarihi</th>
+                    <th>ID</th>
+                    <th>Model</th>
+                    <th>Lokasyon</th>
+                    <th>Durum</th>
+                    <th>Ekleme Tarihi</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {recentServers.slice(0, 4).map(server => (
-                    <tr key={server.id} className="hover:bg-gray-50 cursor-pointer">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <Link to={`/servers/${server.id}`} className="text-primary-600 hover:text-primary-900">
+                    <tr key={server.id} className="hover:bg-gray-50">
+                      <td className="font-medium">
+                        <Link to={`/servers/${server.id}`} className="text-primary hover:text-primary/90">
                           {server.serverId}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{server.model}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{server.location}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(server.status)}
+                      <td>{server.model}</td>
+                      <td>
+                        {server.locationId && (
+                          <span>{server.location || `Lokasyon #${server.locationId}`}</span>
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(server.createdAt)}
+                      <td>
+                        <span className={`status-badge ${
+                          server.status === 'active' ? 'status-active' :
+                          server.status === 'transit' ? 'status-transit' :
+                          server.status === 'setup' ? 'status-setup' :
+                          server.status === 'shippable' ? 'status-shippable' :
+                          'status-passive'
+                        }`}>
+                          {server.status === 'active' ? 'Aktif' :
+                           server.status === 'transit' ? 'Transferde' :
+                           server.status === 'setup' ? 'Kurulumda' :
+                           server.status === 'shippable' ? 'Gönderilebilir' :
+                           'Pasif'}
+                        </span>
                       </td>
+                      <td>{formatDate(server.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <div className="py-4 text-center text-gray-500">Henüz sunucu bulunmuyor</div>
+              <div className="py-12 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                  <ServerIcon className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500">Henüz sunucu bulunmuyor</p>
+              </div>
             )}
           </div>
         </div>
