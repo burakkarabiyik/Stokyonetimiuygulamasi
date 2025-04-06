@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  app:
+    build: 
+      context: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - USE_DATABASE=true
+      - DATABASE_URL=postgres://postgres:password@db:5432/stokdb
+      - PGUSER=postgres
+      - PGPASSWORD=password
+      - PGDATABASE=stokdb
+      - PGHOST=db
+      - PGPORT=5432
+      - SESSION_SECRET=${SESSION_SECRET:-your_secret_key_here}
+      - JWT_SECRET=${JWT_SECRET:-depo-yonetim-app-jwt-secret}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    entrypoint: ["sh", "/app/docker-entrypoint.sh"]
+    command: ["npm", "start"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - server-network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=stokdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "5432:5432"
+    networks:
+      - server-network
+
+networks:
+  server-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
