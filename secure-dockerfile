@@ -1,0 +1,41 @@
+FROM node:16-alpine AS builder
+
+# Çalışma dizini oluştur
+WORKDIR /app
+
+# Bağımlılıkları kopyala ve yükle
+COPY package*.json ./
+RUN npm install
+
+# Kaynak kodları kopyala
+COPY . .
+
+# Projeyi derle ve şifrele
+RUN npm run build && \
+    node obfuscate.js && \
+    node obfuscate-backend.js
+
+# Çalıştırma aşaması için yeni bir aşama
+FROM node:16-alpine
+
+# Çalışma dizini oluştur
+WORKDIR /app
+
+# Sadece üretim bağımlılıklarını kopyala ve yükle
+COPY --from=builder /app/dist/ ./
+COPY package.json ./
+RUN npm install --production
+
+# Uygulama kullanıcısı oluştur ve izinleri düzenle
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+# Kullanıcıyı nodejs olarak değiştir
+USER nodejs
+
+# Uygulama portunu belirt
+EXPOSE 5000
+
+# Uygulamayı çalıştır
+CMD ["node", "index.js"]

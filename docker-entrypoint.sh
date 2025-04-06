@@ -1,17 +1,12 @@
 #!/bin/sh
-set -e
 
-# Wait for the database to be available
-echo "Waiting for PostgreSQL to be ready..."
+# PostgreSQL veritabanının hazır olup olmadığını kontrol eder
 while ! nc -z db 5432; do
-  sleep 0.5
+  echo "PostgreSQL veritabanı başlatılıyor - lütfen bekleyin..."
+  sleep 2
 done
-echo "PostgreSQL is ready!"
 
-# Run migrations
-echo "Running database migrations..."
-npm run db:push
+echo "PostgreSQL veritabanı hazır, uygulama başlatılıyor..."
 
-# Start the application
-echo "Starting the application..."
+# Uygulamayı başlat
 exec "$@"

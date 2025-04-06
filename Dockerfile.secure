@@ -1,0 +1,37 @@
+FROM node:16-alpine AS builder
+
+# Çalışma dizini oluştur
+WORKDIR /app
+
+# Bağımlılıkları kopyala ve yükle
+COPY package*.json ./
+RUN echo "Paketler kurulacak"
+
+# Kaynak kodları kopyala
+COPY . .
+
+# Projeyi derle ve şifrele
+RUN echo "Derleme ve şifreleme yapılacak"
+
+# Çalıştırma aşaması için yeni bir aşama
+FROM node:16-alpine
+
+# Çalışma dizini oluştur
+WORKDIR /app
+
+# Sadece üretim bağımlılıklarını kopyala ve yükle
+COPY --from=builder /app/dist/ ./
+COPY package.json ./
+RUN echo "Üretim bağımlılıkları kurulacak"
+
+# Uygulama kullanıcısı oluştur ve izinleri düzenle
+RUN echo "Kullanıcı ve izinler ayarlanacak"
+
+# Kullanıcıyı nodejs olarak değiştir
+USER nodejs
+
+# Uygulama portunu belirt
+EXPOSE 5000
+
+# Uygulamayı çalıştır
+CMD ["node", "index.js"]

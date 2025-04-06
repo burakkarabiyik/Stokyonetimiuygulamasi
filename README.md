@@ -1,63 +1,51 @@
 # Sunucu Envanter Yönetim Sistemi
 
-Bu proje, sunucu envanteri ve depo yönetimi için geliştirilmiş kapsamlı bir web uygulamasıdır. Sistem, farklı depolardaki sunucuları takip etmeyi, sunucuları ekleyip çıkarmayı, konumlar arasında transfer etmeyi, detaylı notlar eklemeyi ve sunucu bilgilerini (IP'ler, şifreler) yönetmeyi sağlar.
+Bu proje, farklı konumlardaki sunucuların envanterini yönetmek, durumlarını takip etmek ve bilgilerini düzenlemek için geliştirilmiş kapsamlı bir web uygulamasıdır.
 
 ## Özellikler
 
-- Kullanıcı yetkilendirme sistemi (Yönetici/Kullanıcı rolleri)
-- Sunucu yaşam döngüsü takibi (Pasif -> Kurulum -> Gönderilebilir -> Aktif)
-- Sunucu konumları arasında transfer yönetimi
-- Detaylı not ekleme ve görüntüleme
-- Sunucu modelleri yönetimi
-- Görsel raporlama ve istatistikler
-- Toplu sunucu ekleme özelliği
-- Responsive ve modern kullanıcı arayüzü
-
-## Teknolojiler
-
-- Frontend: React.js, TypeScript, Tailwind CSS, Shadcn/UI
-- Backend: Node.js, Express.js, TypeScript
-- Veritabanı: PostgreSQL, Drizzle ORM
-- Containerization: Docker ve Docker Compose
-
+- **Sunucu Takibi**: Farklı lokasyonlardaki sunucuları ekleyin, düzenleyin ve takip edin
+- **Sunucu Detayları**: Her sunucu için IP, kullanıcı adı, şifre gibi kritik bilgileri saklayın
+- **Durum Yönetimi**: Sunucuların durumunu izleyin (Pasif, Kurulum, Gönderilebilir, Sahada vb.)
+- **Transfer İşlemleri**: Sunucuları lokasyonlar arasında transfer edin ve geçmişini izleyin
+- **Not Sistemi**: Sunuculara notlar ekleyin ve değiştirin
+- **Çoklu Sanal Makine Desteği**: Her fiziksel sunucu için birden fazla sanal makine bilgisi ekleyin
+- **Admin Paneli**: Kullanıcı ve rol yönetimi yapın
+- **Raporlama**: Sunucu durumları ve dağılımı hakkında detaylı raporlar alın
 ## Kurulum
 
 ### Docker ile Kurulum
 
-1. Örnek çevre değişkenleri dosyasını kopyalayın ve düzenleyin:
-   ```bash
-   cp .env.example .env
-   ```
+Docker kullanmak istiyorsanız, sadece docker-compose komutunu çalıştırmanız yeterlidir.
 
-2. Docker ile başlatın:
-   ```bash
-   docker-compose up -d
-   ```
+Uygulama varsayılan olarak http://localhost:5000 adresinde çalışacaktır.
 
-3. Tarayıcınızda aşağıdaki adresi açın:
-   ```
-   http://localhost:5000
-   ```
+## Kod Şifreleme (Obfuscation)
 
-### Geliştirme için Kurulum
+Üretim ortamı için kodları şifrelemek isterseniz build-secure.js dosyasını çalıştırın.
 
-1. Bağımlılıkları yükleyin:
-   ```bash
-   npm install
-   ```
+Veya Docker ile güvenli imajı kullanın.
 
-2. Geliştirme modunda başlatın:
-   ```bash
-   npm run dev
-   ```
+Daha fazla bilgi için [Şifreleme Kılavuzu](README-OBFUSCATION.md) dosyasına bakabilirsiniz.
 
 ## Kullanım
 
-### Varsayılan Yönetici Hesabı
+### İlk Giriş
 
-Sistem ilk başlatıldığında, varsayılan bir yönetici hesabı oluşturulur:
+Sistem ilk çalıştırıldığında otomatik olarak bir admin kullanıcısı oluşturulur:
 
-- Kullanıcı adı: admin
-- Şifre: admin123
+- Kullanıcı adı: `admin`
+- Şifre: `admin123`
 
-**Önemli:** Güvenlik açısından, sistemi canlı ortama geçirdiğinizde bu şifreyi değiştirmeyi unutmayın.
+İlk girişten sonra güvenlik için bu şifreyi değiştirmeniz önerilir.
+
+### Sunucu Yaşam Döngüsü
+
+1. **Pasif**: Yeni eklenen sunucular bu durumdadır
+2. **Kurulum**: Sunucu kurulum aşamasındadır, IP bilgileri girilebilir
+3. **Gönderilebilir**: Kurulumu tamamlanan ve sevkiyata hazır sunucular
+4. **Sahada**: Lokasyona teslim edilmiş aktif sunucular
+
+## Lisans
+
+Bu proje [MIT lisansı](LICENSE) altında lisanslanmıştır.
