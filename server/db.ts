@@ -1,13 +1,11 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import postgres from 'postgres';
 import * as schema from '@shared/schema';
 import { serverModels, users, locations, servers, UserRole } from '@shared/schema';
 import { scrypt, randomBytes } from 'crypto';
 import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
 
 const scryptAsync = promisify(scrypt);
 
@@ -34,224 +32,30 @@ export async function initializeDatabase() {
     
     // Run migrations (this will create tables if they don't exist)
     try {
-      console.log('Running migrations to create database tables...');
+      console.log('Running migrations from both directories to ensure compatibility...');
       
-      // Try different migration folder paths to handle Docker vs local env differences
-      const potentialMigrationPaths = [
-        './migrations',
-        '/app/migrations',
-        '../migrations',
-        '/migrations',
-        './drizzle/migrations'
-      ];
-      
-      let migrationSuccess = false;
-      
-      // Try each potential path until one works
-      for (const migrationPath of potentialMigrationPaths) {
-        try {
-          console.log(`Attempting migrations from ${migrationPath}...`);
-          
-          // Check if the directory exists before attempting migration
-          if (!fs.existsSync(migrationPath)) {
-            console.log(`Path ${migrationPath} does not exist, skipping...`);
-            continue;
-          }
-          
-          // Check if there are SQL files in the directory
-          const files = fs.readdirSync(migrationPath);
-          const sqlFiles = files.filter(file => file.endsWith('.sql'));
-          
-          if (sqlFiles.length === 0) {
-            console.log(`No SQL files found in ${migrationPath}, skipping...`);
-            continue;
-          }
-          
-          console.log(`Found ${sqlFiles.length} SQL migration files in ${migrationPath}`);
-          
-          // Run the migration with this path
-          try {
-            await migrate(db, { 
-              migrationsFolder: migrationPath,
-              migrationsTable: 'drizzle_migrations'
-            });
-          } catch (migrationError: any) {
-            // Check if it's a missing journal file error, which can happen with drizzle
-            if (migrationError.message && migrationError.message.includes("Can't find meta/_journal.json file")) {
-              console.log(`Migration journal not found in ${migrationPath}, but will consider this successful`);
-              // Still consider this a success if the database already has tables
-              migrationSuccess = true;
-              break;
-            } else {
-              // Re-throw for other errors
-              throw migrationError;
-            }
-          }
-          
-          console.log(`Migrations from ${migrationPath} completed successfully`);
-          migrationSuccess = true;
-          break;
-        } catch (error: any) {
-          // Check if this is a "relation already exists" error, which is not critical
-          if (error.message && error.message.includes("relation") && error.message.includes("already exists")) {
-            console.log(`Tables already exist in database when trying migrations from ${migrationPath}, considering successful`);
-            migrationSuccess = true;
-            break;
-          } else {
-            console.warn(`Error running migrations from ${migrationPath}:`, error);
-          }
-        }
+      // First try with the 'migrations' folder
+      try {
+        await migrate(db, { 
+          migrationsFolder: './migrations',
+          migrationsTable: 'drizzle_migrations'
+        });
+        console.log('Migrations from ./migrations completed');
+      } catch (error) {
+        console.warn('Error running migrations from ./migrations:', error);
       }
       
-      if (!migrationSuccess) {
-        console.warn('All migration attempts failed. Will proceed to manual table creation...');
-        
-        // As a last resort, create tables directly with SQL statements
-        console.log('Attempting to manually create tables with direct SQL...');
-        
-        try {
-          // Create users table if it doesn't exist
-          await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS users (
-              id SERIAL PRIMARY KEY,
-              username VARCHAR(255) NOT NULL UNIQUE,
-              password TEXT NOT NULL,
-              fullname TEXT,
-              email TEXT,
-              role VARCHAR(50) NOT NULL DEFAULT 'user',
-              "isActive" BOOLEAN NOT NULL DEFAULT TRUE,
-              "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
-            );
-          `);
-          
-          // Create locations table if it doesn't exist
-          await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS locations (
-              id SERIAL PRIMARY KEY,
-              name VARCHAR(255) NOT NULL,
-              type VARCHAR(50) NOT NULL,
-              address TEXT,
-              capacity INTEGER NOT NULL DEFAULT 0,
-              "isActive" BOOLEAN NOT NULL DEFAULT TRUE,
-              "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
-            );
-          `);
-          
-          // Create server_models table if it doesn't exist
-          await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS server_models (
-              id SERIAL PRIMARY KEY,
-              name VARCHAR(255) NOT NULL,
-              brand VARCHAR(255) NOT NULL,
-              specs TEXT,
-              "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
-            );
-          `);
-          
-          // Create servers table if it doesn't exist
-          await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS servers (
-              id SERIAL PRIMARY KEY,
-              "serverId" VARCHAR(255) NOT NULL UNIQUE,
-              model VARCHAR(255) NOT NULL,
-              specs TEXT NOT NULL,
-              "locationId" INTEGER NOT NULL,
-              status VARCHAR(50) NOT NULL DEFAULT 'passive',
-              username TEXT,
-              password TEXT,
-              "ipAddress" TEXT,
-              network_info TEXT,
-              "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-              "updatedAt" TIMESTAMP NOT NULL DEFAULT NOW()
-            );
-          `);
-          
-          // Create server_notes table if it doesn't exist
-          await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS server_notes (
-              id SERIAL PRIMARY KEY,
-              "serverId" INTEGER NOT NULL,
-              note TEXT NOT NULL,
-              "createdBy" INTEGER NOT NULL,
-              "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(),
-              "updatedAt" TIMESTAMP,
-              "updatedBy" INTEGER,
-              "isDeleted" BOOLEAN NOT NULL DEFAULT FALSE
-            );
-          `);
-          
-          // Create server_transfers table if it doesn't exist
-          await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS server_transfers (
-              id SERIAL PRIMARY KEY,
-              "serverId" INTEGER NOT NULL,
-              "fromLocationId" INTEGER NOT NULL,
-              "toLocationId" INTEGER NOT NULL,
-              "transferredBy" INTEGER NOT NULL,
-              "transferDate" TIMESTAMP NOT NULL,
-              notes TEXT,
-              "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
-            );
-          `);
-          
-          // Create activities table if it doesn't exist
-          await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS activities (
-              id SERIAL PRIMARY KEY,
-              type VARCHAR(50) NOT NULL,
-              description TEXT NOT NULL,
-              "serverId" INTEGER,
-              "userId" INTEGER,
-              "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
-            );
-          `);
-          
-          console.log('Manual table creation completed');
-        } catch (manualError) {
-          console.error('Error during manual table creation:', manualError);
-          
-          // Still try to use migrations from SQL files as a last resort
-          try {
-            console.log('Attempting to find SQL files for manual execution...');
-            
-            // Search for any SQL file to use as a manual migration
-            const searchPaths = [
-              './migrations', 
-              '/app/migrations', 
-              '../migrations',
-              './drizzle/migrations'
-            ];
-            
-            let sqlContent = '';
-            let sqlFileFound = false;
-            
-            for (const dirPath of searchPaths) {
-              if (fs.existsSync(dirPath)) {
-                const files = fs.readdirSync(dirPath);
-                for (const file of files) {
-                  if (file.endsWith('.sql')) {
-                    sqlContent = fs.readFileSync(path.join(dirPath, file), 'utf8');
-                    console.log(`Found SQL file: ${path.join(dirPath, file)}`);
-                    sqlFileFound = true;
-                    break;
-                  }
-                }
-                if (sqlFileFound) break;
-              }
-            }
-            
-            if (sqlFileFound) {
-              // Execute the SQL content directly
-              await db.execute(sqlContent);
-              console.log('SQL file execution completed');
-            } else {
-              console.error('No SQL migration files found for manual creation');
-            }
-          } catch (fileError) {
-            console.error('Error reading or executing SQL files:', fileError);
-          }
-        }
+      // Also try with the 'drizzle' folder as a backup
+      try {
+        await migrate(db, { 
+          migrationsFolder: './drizzle',
+          migrationsTable: 'drizzle_migrations'
+        });
+        console.log('Migrations from ./drizzle completed');
+      } catch (error) {
+        console.warn('Error running migrations from ./drizzle:', error);
       }
+      console.log('Migrations completed successfully');
     } catch (migrateError) {
       console.error('Migration error:', migrateError);
       console.warn('Attempting to continue despite migration error...');

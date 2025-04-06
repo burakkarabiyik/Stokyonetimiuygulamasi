@@ -60,8 +60,6 @@ export interface IStorage {
   // Note operations
   getServerNotes(serverId: number): Promise<ServerNote[]>;
   addServerNote(note: InsertServerNote): Promise<ServerNote>;
-  updateServerNote(noteId: number, note: Partial<InsertServerNote>): Promise<ServerNote | undefined>;
-  deleteServerNote(noteId: number): Promise<boolean>;
   
   // Transfer operations
   getServerTransfers(serverId: number): Promise<ServerTransfer[]>;
@@ -337,77 +335,6 @@ export class MemStorage implements IStorage {
     });
     
     return newNote;
-  }
-  
-  async updateServerNote(noteId: number, noteUpdate: Partial<InsertServerNote>): Promise<ServerNote | undefined> {
-    // Find which server has this note
-    let foundNote: ServerNote | undefined = undefined;
-    let foundServerId: number | undefined = undefined;
-    
-    for (const [serverId, notes] of this.serverNotes.entries()) {
-      const note = notes.find(n => n.id === noteId);
-      if (note) {
-        foundNote = note;
-        foundServerId = serverId;
-        break;
-      }
-    }
-    
-    if (!foundNote || !foundServerId) {
-      return undefined;
-    }
-    
-    // Update the note
-    const updatedNote: ServerNote = {
-      ...foundNote,
-      ...noteUpdate,
-      id: foundNote.id,
-      createdAt: foundNote.createdAt,
-      updatedAt: new Date()
-    };
-    
-    // Replace the old note with the updated one
-    const notes = this.serverNotes.get(foundServerId) || [];
-    const updatedNotes = notes.map(n => n.id === noteId ? updatedNote : n);
-    this.serverNotes.set(foundServerId, updatedNotes);
-    
-    return updatedNote;
-  }
-  
-  async deleteServerNote(noteId: number): Promise<boolean> {
-    // Find which server has this note
-    let foundServerId: number | undefined = undefined;
-    
-    for (const [serverId, notes] of this.serverNotes.entries()) {
-      if (notes.some(n => n.id === noteId)) {
-        foundServerId = serverId;
-        break;
-      }
-    }
-    
-    if (!foundServerId) {
-      return false;
-    }
-    
-    // Delete the note
-    const notes = this.serverNotes.get(foundServerId) || [];
-    const filteredNotes = notes.filter(n => n.id !== noteId);
-    
-    // If we removed something, the lengths will be different
-    if (notes.length === filteredNotes.length) {
-      return false;
-    }
-    
-    this.serverNotes.set(foundServerId, filteredNotes);
-    
-    // Add a deletion activity
-    this.addActivity({
-      serverId: foundServerId,
-      type: ActivityType.NOTE,
-      description: `Not silindi`
-    });
-    
-    return true;
   }
 
   // Transfer operations

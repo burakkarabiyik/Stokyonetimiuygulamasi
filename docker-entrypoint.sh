@@ -1,34 +1,17 @@
 #!/bin/sh
 set -e
 
-# dist klasörünü kontrol et ve gerekirse oluştur
-if [ ! -d "dist" ]; then
-  echo "dist klasörü oluşturuluyor..."
-  mkdir -p dist
-fi
-
-# dist/index.js dosyasını kontrol et ve gerekirse oluştur
-if [ ! -f "dist/index.js" ]; then
-  echo "dist/index.js dosyası oluşturuluyor..."
-  echo '// Bu Docker için özel başlatma dosyası' > dist/index.js
-  echo 'console.log("Uygulama başlatılıyor...");' >> dist/index.js
-  echo 'require("../server/index");' >> dist/index.js
-fi
-
-# Veritabanı bağlantısını kontrol et
-echo "PostgreSQL bekleniyor..."
-RETRIES=15
-until [ $RETRIES -eq 0 ] || nc -z ${PGHOST:-db} ${PGPORT:-5432}; do
-  echo "PostgreSQL bekleniyor... $RETRIES kalan deneme"
-  RETRIES=$((RETRIES-1))
-  sleep 3
+# Wait for the database to be available
+echo "Waiting for PostgreSQL to be ready..."
+while ! nc -z db 5432; do
+  sleep 0.5
 done
+echo "PostgreSQL is ready!"
 
-echo "Veritabanı düzeltme scripti çalıştırılıyor..."
-node fix-db-script.js
+# Run migrations
+echo "Running database migrations..."
+npm run db:push
 
-echo "Veritabanı migration'ları çalıştırılıyor..."
-npm run db:push || echo "Migration hatası, devam ediliyor"
-
-echo "Uygulama başlatılıyor..."
+# Start the application
+echo "Starting the application..."
 exec "$@"

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,7 +16,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  fullname: text("fullname"),  // Using "fullname" to match the actual database column
+  fullname: text("full_name"),  // Veritabanı sütun adıyla eşleştirildi
   email: text("email"),
   role: text("role").default("user").notNull(), // "admin" or "user"
   isActive: boolean("is_active").default(true).notNull(),
@@ -43,8 +43,6 @@ export const servers = pgTable("servers", {
   ipAddress: text("ip_address"),
   username: text("username"),
   password: text("password"),
-  // IP adresi, kullanıcı adı ve şifre JSON olarak saklanacak
-  networkInfo: text("network_info"),  // JSON verisini metin olarak saklayacağız
   locationId: integer("location_id").notNull(),
   status: text("status").notNull(), // "passive", "setup", "shippable", "active"
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -57,9 +55,6 @@ export const serverNotes = pgTable("server_notes", {
   note: text("note").notNull(),
   createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at"),
-  updatedBy: integer("updated_by"),
-  isDeleted: boolean("is_deleted").default(false).notNull(),
 });
 
 export const serverTransfers = pgTable("server_transfers", {
@@ -109,7 +104,7 @@ export const batchServerSchema = z.object({
   quantity: z.number().min(1).max(10),
   modelId: z.number().min(1, "Sunucu modeli seçilmelidir"),
   locationId: z.number().min(1, "Lokasyon seçilmelidir"),
-  status: z.string().default("passive"),
+  status: z.string().default(ServerStatus.PASSIVE),
 });
 
 // Types
