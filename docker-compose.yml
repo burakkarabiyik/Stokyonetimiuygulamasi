@@ -20,6 +20,7 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    command: ["sh", "./docker-entrypoint.sh", "npm", "start"]
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/health"]
       interval: 30s

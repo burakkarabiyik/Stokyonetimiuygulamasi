@@ -22,10 +22,9 @@ EXPOSE 5000
 ENV NODE_ENV=production
 ENV USE_DATABASE=true
 
-# Copy and set entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Copy entrypoint script to the working directory
+COPY docker-entrypoint.sh ./
+RUN chmod +x ./docker-entrypoint.sh
 
-# Command to run the server
-CMD ["npm", "start"]
+# Command to run the server with entrypoint
+CMD ["sh", "./docker-entrypoint.sh", "npm", "start"]
