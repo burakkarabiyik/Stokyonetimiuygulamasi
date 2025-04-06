@@ -1,37 +1,66 @@
-FROM node:16-alpine AS builder
+# Derleme aşaması
+FROM node:20-alpine AS builder
 
 # Çalışma dizini oluştur
 WORKDIR /app
 
-# Bağımlılıkları kopyala ve yükle
+# Önce sadece package.json ve package-lock.json dosyalarını kopyala
+# Bu, bağımlılıklar değişmediğinde önbelleği kullanmamızı sağlar
 COPY package*.json ./
-RUN echo "Paketler kurulacak"
+
+# Sadece üretim bağımlılıklarını yükle
+RUN npm ci --only=production
 
 # Kaynak kodları kopyala
 COPY . .
 
 # Projeyi derle ve şifrele
-RUN echo "Derleme ve şifreleme yapılacak"
+RUN npm run build && \
+    node obfuscate.js && \
+    node obfuscate-backend.js
 
-# Çalıştırma aşaması için yeni bir aşama
-FROM node:16-alpine
+# Çalıştırma aşaması için minimal imaj
+FROM node:20-alpine
 
-# Çalışma dizini oluştur
+# PostgreSQL istemci araçlarını ekle
+RUN apk add --no-cache postgresql-client
+
+# Güvenlik için root olmayan kullanıcı oluştur
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Çalışma dizini oluştur ve kullanıcıya izin ver
 WORKDIR /app
+RUN chown -R appuser:appgroup /app
 
-# Sadece üretim bağımlılıklarını kopyala ve yükle
-COPY --from=builder /app/dist/ ./
-COPY package.json ./
-RUN echo "Üretim bağımlılıkları kurulacak"
+# Sadece gerekli dosyaları kopyala
+COPY --from=builder --chown=appuser:appgroup /app/dist/ ./
+COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
+COPY --from=builder --chown=appuser:appgroup /app/package*.json ./
+COPY --chown=appuser:appgroup docker-entrypoint.sh /docker-entrypoint.sh
 
-# Uygulama kullanıcısı oluştur ve izinleri düzenle
-RUN echo "Kullanıcı ve izinler ayarlanacak"
+# Docker imaj boyutunu küçültmek için gereksiz dosyaları temizle
+RUN npm cache clean --force && \
+    rm -rf /tmp/* && \
+    find ./node_modules -name "*.d.ts" -delete && \
+    find ./node_modules -name "*.map" -delete && \
+    find ./node_modules -name "*.md" -delete && \
+    find ./node_modules -name "LICENSE" -delete && \
+    find ./node_modules -name "licence*" -delete && \
+    find ./node_modules -name "LICENCE*" -delete
 
-# Kullanıcıyı nodejs olarak değiştir
-USER nodejs
+# Çalıştırma script'ine çalıştırma izni ver
+RUN chmod +x /docker-entrypoint.sh
+
+# Güvenlik için root olmayan kullanıcı kullan
+USER appuser
+
+# Ortam değişkenlerini tanımla
+ENV NODE_ENV=production
+ENV PORT=5000
 
 # Uygulama portunu belirt
 EXPOSE 5000
 
-# Uygulamayı çalıştır
-CMD ["node", "index.js"]
+# Uygulamayı başlat
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["node", "--optimize_for_size", "--max_old_space_size=460", "--gc_interval=100", "index.js"]

@@ -1,89 +1,120 @@
-# Sunucu Envanter Sistemi - Kod Şifreleme (Obfuscation) Kılavuzu
+# Kod Şifreleme (Obfuscation) Sistemi
 
-Bu kılavuz, Sunucu Envanter Sistemi kodlarını nasıl şifreleyeceğinizi ve üretim ortamı için güvenli bir dağıtım hazırlayacağınızı açıklar.
+Bu belge, Sunucu Envanteri uygulamasının kod şifreleme (obfuscation) sistemi hakkında teknik bilgiler içermektedir.
 
-## Kod Şifrelemenin Amacı
+## Genel Bakış
 
-Kod şifreleme (obfuscation), kaynak kodunu analiz edilmesi zor, karmaşık ve anlaşılmaz hale getirme işlemidir. Bu, aşağıdaki avantajları sağlar:
-
-- **Fikri Mülkiyet Koruması**: Özel algoritmaları ve iş mantığını korur
-- **Güvenlik Artışı**: Güvenlik açıklarını ve zayıf noktaları tespit etmeyi zorlaştırır
-- **Tersine Mühendisliği Engelleme**: Kodun işleyişini analiz etmeyi ve yeniden oluşturmayı zorlaştırır
-- **Lisanssız Kullanımı Caydırma**: Yazılımın yetkisiz kopyalanmasını ve dağıtılmasını engeller
-
-## Şifreleme Özellikleri
-
-Bu projede kullanılan şifreleme stratejisi şunları içerir:
-
-1. **Kontrol Akışı Düzleştirme**: Kodun akış yapısını karmaşıklaştırır
-2. **Ölü Kod Enjeksiyonu**: İşlevsel olmayan, yanıltıcı kod parçaları ekler
-3. **Hata Ayıklama Koruması**: Hata ayıklayıcıların çalışmasını engeller
-4. **İsim Değiştirme**: Değişken ve fonksiyon isimlerini anlamsız ifadelerle değiştirir
-5. **Dize Şifreleme**: Kod içindeki metin dizilerini şifreler ve dinamik olarak çözümler
-6. **Kendini Koruma**: Şifreli kodun manipüle edilmesini algılar ve engeller
-7. **Unicode Dönüşümü**: Karakterleri unicode escape sequences olarak kodlar
+Kod şifreleme, kaynak kodunun okunabilirliğini azaltırken aynı işlevselliği koruyarak tersine mühendislik girişimlerine karşı koruma sağlayan bir tekniğidir. Uygulamamız, dağıtım öncesinde hem frontend hem de backend kodlarını şifreleyerek koruma sağlamaktadır.
 
 ## Şifreleme Araçları
 
-Projede JavaScript şifrelemesi için aşağıdaki araçlar kullanılmaktadır:
+Projede iki farklı şifreleme aracı kullanılmaktadır:
 
-- **javascript-obfuscator**: Ana JavaScript şifreleme motorudur
-- **obfuscate.js**: Frontend kodlarını şifreler (client/dist içindeki JS dosyaları)
-- **obfuscate-backend.js**: Backend kodlarını şifreler (dist klasöründeki JS dosyaları)
-- **build-secure.js**: Tam bir güvenli derleme süreci yürütür
+1. **Frontend Şifreleme**: `javascript-obfuscator` paketi
+2. **Backend Şifreleme**: `javascript-obfuscator` paketi
 
-## Güvenli Dağıtım Oluşturma
+## Şifreleme Süreci
 
-Güvenli bir dağıtım oluşturmak için aşağıdaki adımları izleyin:
+Şifreleme işlemi `build-secure.cjs` betiği tarafından koordine edilir ve aşağıdaki adımları içerir:
 
-### 1. Proje Derleme ve Şifreleme
+1. Proje normal olarak derlenir (`npm run build`)
+2. Frontend JavaScript dosyaları `obfuscate.js` betiği ile şifrelenir
+3. Backend JavaScript dosyaları `obfuscate-backend.js` betiği ile şifrelenir
+4. Docker dağıtım dosyaları oluşturulur
 
-Aşağıdaki komutları sırasıyla çalıştırın:
+## Frontend Şifreleme (obfuscate.js)
 
-```bash
-# 1. Önce normal derleme yapın
-npm run build
+Frontend şifreleme işlemi, `dist/client` klasöründeki JavaScript dosyalarını işler ve aşağıdaki koruma yöntemlerini uygular:
 
-# 2. Frontend JS dosyalarını şifreleyin
-node obfuscate.js
+- **Tanımlayıcı Adlarını Gizleme**: Değişken ve fonksiyon adları anlamsız karakterlerle değiştirilir
+- **Karakter Kodlama**: String değerler karakter kodlarına dönüştürülür
+- **Kontrol Akışı Karıştırma**: Kodun yürütme sırası karmaşıklaştırılır
+- **Ölü Kod Enjeksiyonu**: Yanıltıcı kod parçacıkları eklenir
+- **Kontrol Akışı Düzleştirme**: If-else yapıları ve döngüler yapılandırılır
 
-# 3. Backend JS dosyalarını şifreleyin
-node obfuscate-backend.js
+## Backend Şifreleme (obfuscate-backend.js)
+
+Backend şifreleme işlemi, `dist` klasöründeki sunucu kodunu işler ve aşağıdaki koruma tekniklerini uygular:
+
+- **Tanımlayıcı Adlarını Gizleme**: Değişken ve fonksiyon adları değiştirilir
+- **String Gizleme**: String değerler maskelenir
+- **Kontrol Akışı Karıştırma**: Kod mantığı karmaşıklaştırılır
+- **Yorum ve Gereksiz Boşlukların Kaldırılması**: Tüm yorum ve boşluklar kaldırılır
+
+## Şifreleme Yapılandırması
+
+Her iki şifreleme işlemi için kullanılan yapılandırma şu özellikleri içerir:
+
+```javascript
+const obfuscatorOptions = {
+  compact: true,
+  controlFlowFlattening: true,
+  controlFlowFlatteningThreshold: 0.7,
+  deadCodeInjection: true,
+  deadCodeInjectionThreshold: 0.4,
+  debugProtection: true,
+  debugProtectionInterval: true,
+  disableConsoleOutput: true,
+  identifierNamesGenerator: 'hexadecimal',
+  log: false,
+  numbersToExpressions: true,
+  renameGlobals: false,
+  selfDefending: true,
+  simplify: true,
+  splitStrings: true,
+  splitStringsChunkLength: 10,
+  stringArray: true,
+  stringArrayCallsTransform: true,
+  stringArrayEncoding: ['base64'],
+  stringArrayIndexShift: true,
+  stringArrayRotate: true,
+  stringArrayShuffle: true,
+  stringArrayWrappersCount: 2,
+  stringArrayWrappersType: 'function',
+  stringArrayThreshold: 0.75,
+  transformObjectKeys: true,
+  unicodeEscapeSequence: false
+};
 ```
 
-Ya da tüm süreci tek bir komutla çalıştırabilirsiniz:
+## Güvenlik Konuları
+
+Kod şifreleme sistemi, aşağıdaki güvenlik katmanlarını sağlar:
+
+1. **Tersine Mühendislik Koruması**: Kodun yapısını ve mantığını anlaşılması zor hale getirir
+2. **Fikri Mülkiyet Koruması**: Özel algoritmaları ve iş mantığını korur
+3. **Güvenlik Açığı Gizleme**: Potansiyel zayıflıkların doğrudan tanımlanmasını önler
+4. **Kendi Kendini Savunma**: Şifrelenmiş kodun değiştirilmesini tespit eder ve engeller
+
+## Sınırlamalar
+
+Kod şifreleme, aşağıdaki sınırlamalara sahiptir:
+
+1. **Performans Etkileri**: Şifrelenmiş kod çalışma süresinde hafif bir performans cezası getirebilir
+2. **Hata Ayıklama Zorlukları**: Şifrelenmiş kodda hata ayıklama daha zordur
+3. **Mutlak Güvenlik Olmaması**: Kararlı bir saldırgan yeterli zaman ve kaynak ile şifrelenmiş kodu hala analiz edebilir
+
+## Özelleştirme
+
+Şifreleme seviyesini değiştirmek isterseniz, `obfuscate.js` ve `obfuscate-backend.js` dosyalarındaki `obfuscatorOptions` nesnesini düzenleyebilirsiniz. Yüksek şifreleme seviyesi daha iyi koruma sağlar ancak performans üzerinde daha büyük bir etkiye sahip olabilir.
+
+## En İyi Uygulamalar
+
+1. Şifrelenmiş kodla birlikte kaynak haritaları dağıtmayın
+2. Hassas bilgileri (API anahtarları, şifreler vb.) kod içinde saklamaktan kaçının
+3. Şifreleme tek başına bir güvenlik çözümü olarak düşünmeyin, bütünsel bir güvenlik stratejisinin bir parçası olarak kullanın
+
+## Şifrelenmiş Uygulama Çalıştırma
+
+Şifrelenmiş uygulamayı Docker ile çalıştırmak için:
 
 ```bash
-node build-secure.js
+docker-compose -f docker-compose.yml.new up -d
 ```
 
-### 2. Dağıtım Paketi Oluşturma
+Şifrelenmiş uygulamayı doğrudan çalıştırmak için:
 
-Şifreleme işlemi tamamlandıktan sonra, `dist` klasörü şifrelenmiş kodları içerecektir. Bu klasörü dağıtım ortamınıza kopyalayabilirsiniz. Docker kullanıyorsanız, Dockerfile'ınızı bu şifreleme süreci ile uyumlu hale getirmeniz önerilir.
-
-## Şifreleme Seviyesini Ayarlama
-
-Şifreleme seviyesini değiştirmek için `obfuscate.js` ve `obfuscate-backend.js` dosyalarındaki `obfuscatorOptions` nesnesini düzenleyebilirsiniz. Önemli parametreler:
-
-- **controlFlowFlatteningThreshold**: (0-1) Kontrol akışı düzleştirmesinin yoğunluğu
-- **deadCodeInjectionThreshold**: (0-1) Eklenen ölü kod miktarı
-- **stringArrayThreshold**: (0-1) Şifrelenecek dize miktarı
-- **selfDefending**: (true/false) Kodun kendini koruması
-- **identifierNamesGenerator**: İsimlendirme stratejisi ('hexadecimal', 'mangled' vb.)
-
-## Notlar ve Uyarılar
-
-- Şifreleme, kodun çalışma hızını biraz yavaşlatabilir
-- Şifreleme seviyesi arttıkça dosya boyutu büyüyebilir
-- Şifrelenmiş kodu debugging yapmak çok zordur, bu nedenle sadece üretim sürümlerinde kullanın
-- Aşırı şifreleme bazen uygulamanın çalışmasını engelleyebilir, bu yüzden şifrelenmiş kodu mutlaka test edin
-- Bu şifreleme yöntemleri mutlak güvenlik sağlamaz, ancak kodu anlamayı ve manipüle etmeyi önemli ölçüde zorlaştırır
-
-## Sorun Giderme
-
-Şifreleme sonrası uygulamada sorun yaşıyorsanız:
-
-1. Önce şifrelemesiz sürümle test edin
-2. Şifreleme seviyesini düşürün (özellikle `controlFlowFlattening` ve `stringArray` parametrelerini)
-3. Kritik fonksiyonları `reservedNames` listesine ekleyerek şifrelenmelerini engelleyin
-4. Browser konsolundaki hataları kontrol edin
+```bash
+cd dist
+node index.js
+```
