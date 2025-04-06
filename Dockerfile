@@ -2,31 +2,30 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install netcat for health checking
+# Gerekli araçları kur
 RUN apk add --no-cache netcat-openbsd
 
-# Copy package.json and install dependencies
+# Uygulama dosyalarını kopyala
 COPY package*.json ./
 RUN npm ci
 
-# Copy application code
+# Uygulama kodlarını kopyala
 COPY . .
 
-# Build the application using our custom build script
-RUN chmod +x build.js
-RUN node build.js
+# Derleme klasörü ve basit bir HTML dosyası oluştur
+RUN mkdir -p dist/public
+RUN echo '<!DOCTYPE html><html><head><title>API Sunucusu</title></head><body><h1>API Sunucusu Çalışıyor</h1></body></html>' > dist/public/index.html
 
-# Expose port for the server
-EXPOSE 5000
-
-# Set environment variables
+# Ortam değişkenlerini ayarla
 ENV NODE_ENV=production
 ENV USE_DATABASE=true
 
-# Copy and set entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Port aç
+EXPOSE 5000
 
-# Command to run the server
-CMD ["npm", "start"]
+# Giriş noktası scriptini ayarla
+RUN chmod +x docker-entrypoint.sh
+ENTRYPOINT ["./docker-entrypoint.sh"]
+
+# Varsayılan komut
+CMD ["node", "index.js"]

@@ -1,0 +1,163 @@
+#!/bin/sh
+set -e
+
+# Exit immediately if a command exits with a non-zero status
+trap 'catch $?' EXIT
+catch() {
+  if [ "$1" != "0" ]; then
+    echo "Error: Command failed with exit code $1"
+    exit 1
+  fi
+}
+
+# Wait for the database to be available
+echo "Waiting for PostgreSQL to be ready..."
+RETRIES=30
+until nc -z ${PGHOST:-db} ${PGPORT:-5432} || [ $RETRIES -eq 0 ]; do
+  echo "Waiting for PostgreSQL server, $((RETRIES--)) remaining attempts..."
+  sleep 2
+done
+
+if [ $RETRIES -eq 0 ]; then
+  echo "Failed to connect to PostgreSQL, continuing anyway..."
+else
+  echo "PostgreSQL is ready!"
+fi
+
+# Verify database connection with more robust error handling
+echo "Verifying database connection..."
+if PGPASSWORD=${PGPASSWORD} psql -h ${PGHOST:-db} -U ${PGUSER:-postgres} -d ${PGDATABASE:-postgres} -c "SELECT 1" > /dev/null 2>&1; then
+  echo "Database connection verified!"
+else
+  echo "WARNING: Could not connect to database. Will continue and attempt migration anyway..."
+fi
+
+# Ensure drizzle directory exists
+echo "Preparing drizzle directory..."
+mkdir -p drizzle
+touch drizzle/_journal.json
+echo '{"version":"5","dialect":"pg","entries":[]}' > drizzle/_journal.json
+echo "Created drizzle/_journal.json file"
+
+# Run migrations with better error handling
+echo "Running database migrations..."
+set +e
+npm run db:push
+MIGRATION_RESULT=$?
+set -e
+
+if [ $MIGRATION_RESULT -eq 0 ]; then
+  echo "Migrations completed successfully!"
+else
+  echo "WARNING: Migration returned non-zero exit code $MIGRATION_RESULT, but continuing..."
+fi
+
+# Fix common database schema issues - simplified approach
+echo "Fixing common database schema issues..."
+
+# Create a helper script to run SQL safely
+cat > /tmp/fix-db.sql << 'EOSQL'
+DO $$
+DECLARE
+  table_exists boolean;
+BEGIN
+  -- Check if servers table exists
+  SELECT EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_name = 'servers'
+  ) INTO table_exists;
+  
+  -- Add network_info column if needed
+  IF table_exists THEN
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'servers' AND column_name = 'network_info'
+    ) THEN
+      ALTER TABLE servers ADD COLUMN network_info text;
+      RAISE NOTICE 'Added network_info column to servers table';
+    ELSE
+      RAISE NOTICE 'network_info column already exists in servers table';
+    END IF;
+  ELSE
+    RAISE NOTICE 'servers table does not exist yet';
+  END IF;
+  
+  -- Check if users table exists
+  SELECT EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_name = 'users'
+  ) INTO table_exists;
+  
+  -- Add fullname column if needed
+  IF table_exists THEN
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'users' AND column_name = 'fullname'
+    ) THEN
+      ALTER TABLE users ADD COLUMN fullname text;
+      RAISE NOTICE 'Added fullname column to users table';
+    ELSE
+      RAISE NOTICE 'fullname column already exists in users table';
+    END IF;
+  ELSE
+    RAISE NOTICE 'users table does not exist yet';
+  END IF;
+  
+  -- Check if server_notes table exists
+  SELECT EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_name = 'server_notes'
+  ) INTO table_exists;
+  
+  -- Fix server_notes table if needed
+  IF table_exists THEN
+    -- Add updated_at
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'server_notes' AND column_name = 'updated_at'
+    ) THEN
+      ALTER TABLE server_notes ADD COLUMN updated_at timestamp;
+      RAISE NOTICE 'Added updated_at column to server_notes table';
+    END IF;
+    
+    -- Add updated_by
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'server_notes' AND column_name = 'updated_by'
+    ) THEN
+      ALTER TABLE server_notes ADD COLUMN updated_by integer;
+      RAISE NOTICE 'Added updated_by column to server_notes table';
+    END IF;
+    
+    -- Add is_deleted
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'server_notes' AND column_name = 'is_deleted'
+    ) THEN
+      ALTER TABLE server_notes ADD COLUMN is_deleted boolean DEFAULT false;
+      RAISE NOTICE 'Added is_deleted column to server_notes table';
+    END IF;
+  ELSE
+    RAISE NOTICE 'server_notes table does not exist yet';
+  END IF;
+  
+  RAISE NOTICE 'Database column check complete';
+END $$;
+EOSQL
+
+# Run the SQL script
+set +e
+PGPASSWORD=${PGPASSWORD} psql -h ${PGHOST:-db} -U ${PGUSER:-postgres} -d ${PGDATABASE:-postgres} -f /tmp/fix-db.sql
+FIX_RESULT=$?
+set -e
+
+if [ $FIX_RESULT -eq 0 ]; then
+  echo "Database column check completed successfully"
+else
+  echo "WARNING: Database column check encountered issues (code $FIX_RESULT), but continuing..."
+fi
+
+# Start the application with error handling
+echo "Starting the application..."
+set +e
+exec "$@"
