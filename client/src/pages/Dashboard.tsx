@@ -127,38 +127,46 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mt-6">
-        <StatsCard 
-          title="Toplam Sunucu"
-          value={statsLoading ? "..." : stats?.total.toString() || "0"}
-          icon={<ServerIcon className="h-6 w-6" />}
-          bgColor="bg-blue-50"
-          iconColor="text-blue-600"
-        />
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mt-8">
+        <div className="dashboard-stat-card">
+          <div className="dashboard-stat-icon bg-blue-50">
+            <ServerIcon className="h-6 w-6 text-blue-600" />
+          </div>
+          <div className="dashboard-stat-info">
+            <div className="dashboard-stat-value">{statsLoading ? "..." : stats?.total || "0"}</div>
+            <div className="dashboard-stat-label">Toplam Sunucu</div>
+          </div>
+        </div>
         
-        <StatsCard 
-          title="Aktif Sunucular"
-          value={statsLoading ? "..." : stats?.active.toString() || "0"}
-          icon={<CircleCheck className="h-6 w-6" />}
-          bgColor="bg-green-50"
-          iconColor="text-green-600"
-        />
+        <div className="dashboard-stat-card">
+          <div className="dashboard-stat-icon bg-emerald-50">
+            <CircleCheck className="h-6 w-6 text-emerald-600" />
+          </div>
+          <div className="dashboard-stat-info">
+            <div className="dashboard-stat-value">{statsLoading ? "..." : stats?.active || "0"}</div>
+            <div className="dashboard-stat-label">Aktif Sunucular</div>
+          </div>
+        </div>
         
-        <StatsCard 
-          title="Transfer Sürecinde"
-          value={statsLoading ? "..." : stats?.transit.toString() || "0"}
-          icon={<Truck className="h-6 w-6" />}
-          bgColor="bg-amber-50"
-          iconColor="text-amber-600"
-        />
+        <div className="dashboard-stat-card">
+          <div className="dashboard-stat-icon bg-amber-50">
+            <Truck className="h-6 w-6 text-amber-600" />
+          </div>
+          <div className="dashboard-stat-info">
+            <div className="dashboard-stat-value">{statsLoading ? "..." : stats?.transit || "0"}</div>
+            <div className="dashboard-stat-label">Transfer Sürecinde</div>
+          </div>
+        </div>
         
-        <StatsCard 
-          title="Kurulumda"
-          value={statsLoading ? "..." : stats?.setup.toString() || "0"}
-          icon={<RotateCw className="h-6 w-6" />}
-          bgColor="bg-purple-50"
-          iconColor="text-purple-600"
-        />
+        <div className="dashboard-stat-card">
+          <div className="dashboard-stat-icon bg-purple-50">
+            <RotateCw className="h-6 w-6 text-purple-600" />
+          </div>
+          <div className="dashboard-stat-info">
+            <div className="dashboard-stat-value">{statsLoading ? "..." : stats?.setup || "0"}</div>
+            <div className="dashboard-stat-label">Kurulumda</div>
+          </div>
+        </div>
       </div>
 
       {/* Recent Activity & Server List Section */}
@@ -241,7 +249,7 @@ export default function Dashboard() {
                       <td>{server.model}</td>
                       <td>
                         {server.locationId && (
-                          <span>{server.location || `Lokasyon #${server.locationId}`}</span>
+                          <span>Lokasyon #{server.locationId}</span>
                         )}
                       </td>
                       <td>

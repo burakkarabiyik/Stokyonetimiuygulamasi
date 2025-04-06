@@ -11,7 +11,7 @@ import Reports from "@/pages/Reports";
 import Sidebar from "@/components/Sidebar";
 import { useState } from "react";
 import { useAuth, AuthProvider } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Settings, LogOut } from "lucide-react";
 import AuthPage from "@/pages/auth-page";
 import { 
   DropdownMenu,
@@ -78,47 +78,59 @@ function Router() {
               <div className="flex items-center">
                 <button 
                   onClick={() => setSidebarOpen(!sidebarOpen)} 
-                  className="md:hidden text-gray-500 hover:text-gray-700"
+                  className="md:hidden p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <h1 className="ml-2 md:ml-0 text-lg font-semibold text-gray-800">Sunucu Envanter Yönetimi</h1>
+                <div className="hidden md:block ml-2 h-5 w-px bg-gray-300 mx-3"></div>
+                <h1 className="hidden md:block text-gradient text-lg font-semibold">
+                  Sunucu Envanter Yönetimi
+                </h1>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center gap-2">
+                <span className="hidden md:flex items-center px-3 py-1 bg-primary/5 text-primary rounded-full text-xs font-medium">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Son Güncelleme: {new Date().toLocaleDateString('tr-TR')}
+                </span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900">
-                      <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                    <button className="flex items-center gap-2 px-2 py-1 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                      <div className="h-8 w-8 rounded-full bg-primary-50 flex items-center justify-center text-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <span className="ml-2">{user.username}</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <span className="mr-1">{user.username}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                       </svg>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem asChild>
                       <a 
                         href="/profile"
+                        className="flex items-center"
                         onClick={(e) => {
                           e.preventDefault();
                           window.history.pushState(null, "", "/profile");
                           window.dispatchEvent(new Event("popstate"));
                         }}
                       >
-                        Profil
+                        <Settings className="h-4 w-4 mr-2" />
+                        Profil Ayarları
                       </a>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
-                      className="text-red-600 cursor-pointer"
+                      className="text-red-600 cursor-pointer flex items-center"
                       onClick={() => logoutMutation.mutate()}
                     >
+                      <LogOut className="h-4 w-4 mr-2" />
                       Çıkış Yap
                     </DropdownMenuItem>
                   </DropdownMenuContent>
