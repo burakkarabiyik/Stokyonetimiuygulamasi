@@ -1,0 +1,100 @@
+
+app-1  | Checking for missing columns and fixing if needed...
+app-1  | 5:45:24 PM [express] Starting database initialization sequence...
+app-1  | 5:45:24 PM [express] Database setup attempt 1/5...
+app-1  | Initializing database...
+app-1  | Running migrations to create database tables...
+app-1  | Attempting migrations from ./migrations...
+app-1  | Found 2 SQL migration files in ./migrations
+app-1  | Servers table exists, checking for missing columns...
+app-1  | Users table exists, checking for column issues...
+db-1   | 2025-04-06 17:45:24.825 UTC [70] ERROR:  relation "activities" already exists
+app-1  | Attempting migrations from /app/migrations...
+db-1   | 2025-04-06 17:45:24.825 UTC [70] STATEMENT:  CREATE TABLE "activities" (
+app-1  | Error running migrations from ./migrations: PostgresError: relation "activities" already exists
+db-1   |                "id" serial PRIMARY KEY NOT NULL,
+app-1  |     at ErrorResponse (file:///app/node_modules/postgres/src/connection.js:788:26)
+db-1   |                "server_id" integer,
+app-1  |     at handle (file:///app/node_modules/postgres/src/connection.js:474:6)
+db-1   |                "type" text NOT NULL,
+app-1  |     at Socket.data (file:///app/node_modules/postgres/src/connection.js:315:9)
+db-1   |                "description" text NOT NULL,
+app-1  |     at Socket.emit (node:events:524:28)
+db-1   |                "user_id" integer,
+app-1  |     at addChunk (node:internal/streams/readable:561:12)
+db-1   |                "created_at" timestamp DEFAULT now() NOT NULL
+app-1  |     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+db-1   |        );
+app-1  |     at Readable.push (node:internal/streams/readable:392:5)
+db-1   |
+app-1  |     at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+db-1   | 2025-04-06 17:45:24.834 UTC [70] ERROR:  relation "activities" already exists
+app-1  |   severity_local: 'ERROR',
+db-1   | 2025-04-06 17:45:24.834 UTC [70] STATEMENT:  CREATE TABLE "activities" (
+app-1  |   severity: 'ERROR',
+db-1   |                "id" serial PRIMARY KEY NOT NULL,
+app-1  |   code: '42P07',
+db-1   |                "server_id" integer,
+app-1 exited with code 0
+app-1  |   file: 'heap.c',
+db-1   |                "type" text NOT NULL,
+app-1  |   line: '1149',
+db-1   |                "description" text NOT NULL,
+app-1  |   routine: 'heap_create_with_catalog'
+db-1   |                "user_id" integer,
+app-1  | }
+db-1   |                "created_at" timestamp DEFAULT now() NOT NULL
+app-1  | Found 2 SQL migration files in /app/migrations
+db-1   |        );
+app-1  | {
+db-1   |
+app-1  |   severity_local: 'NOTICE',
+db-1   | 2025-04-06 17:45:24.846 UTC [70] LOG:  could not receive data from client: Connection reset by peer
+app-1  |   severity: 'NOTICE',
+app-1  |   code: '42P06',
+app-1  |   message: 'schema "drizzle" already exists, skipping',
+app-1  |   file: 'schemacmds.c',
+app-1  |   line: '131',
+app-1  |   routine: 'CreateSchemaCommand'
+app-1  | }
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+app-1  |   code: '42P07',
+app-1  |   message: 'relation "drizzle_migrations" already exists, skipping',
+app-1  |   file: 'parse_utilcmd.c',
+app-1  |   line: '207',
+app-1  |   routine: 'transformCreateStmt'
+app-1  | }
+app-1  | Server notes table exists, checking for missing columns...
+app-1  | Error running migrations from /app/migrations: PostgresError: relation "activities" already exists
+app-1  |     at ErrorResponse (file:///app/node_modules/postgres/src/connection.js:788:26)
+app-1  |     at handle (file:///app/node_modules/postgres/src/connection.js:474:6)
+app-1  |     at Socket.data (file:///app/node_modules/postgres/src/connection.js:315:9)
+app-1  |     at Socket.emit (node:events:524:28)
+app-1  |     at addChunk (node:internal/streams/readable:561:12)
+app-1  |     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+app-1  |     at Readable.push (node:internal/streams/readable:392:5)
+app-1  |     at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+app-1  |   severity_local: 'ERROR',
+app-1  |   severity: 'ERROR',
+app-1  |   code: '42P07',
+app-1  |   file: 'heap.c',
+app-1  |   line: '1149',
+app-1  |   routine: 'heap_create_with_catalog'
+app-1  | }
+app-1  | Attempting migrations from ../migrations...
+app-1  | Path ../migrations does not exist, skipping...
+app-1  | Attempting migrations from /migrations...
+app-1  | Path /migrations does not exist, skipping...
+app-1  | Attempting migrations from ./drizzle/migrations...
+app-1  | Found 2 SQL migration files in ./drizzle/migrations
+app-1  | Attempting to manually create tables with direct SQL...
+app-1  | Error running migrations from ./drizzle/migrations: Error: Can't find meta/_journal.json file
+app-1  |     at readMigrationFiles (file:///app/node_modules/drizzle-orm/migrator.js:8:11)
+app-1  |     at migrate (file:///app/node_modules/drizzle-orm/postgres-js/migrator.js:3:22)
+app-1  |     at initializeDatabase (file:///app/dist/index.js:202:17)
+app-1  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+app-1  |     at async setupDatabase (file:///app/dist/index.js:2347:30)
+app-1  |     at async file:///app/dist/index.js:2378:17
+app-1  | All migration attempts failed. Will proceed to manual table creation...
