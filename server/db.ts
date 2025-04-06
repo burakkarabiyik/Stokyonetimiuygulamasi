@@ -72,7 +72,7 @@ export async function initializeDatabase() {
       await db.insert(users).values({
         username: 'admin',
         password: await hashPassword('admin123'),
-        fullName: 'Admin Kullanıcı', // fullName maps to full_name in the database
+        full_name: 'Admin Kullanıcı', // Use snake_case to match database column
         email: null,
         role: UserRole.ADMIN,
         isActive: true,

@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: 'admin',
         password: await hashPassword('admin123'),
         role: UserRole.ADMIN,
-        fullName: 'Admin Kullanıcı',
+        full_name: 'Admin Kullanıcı',
         isActive: true
       });
       console.log('Default admin user created');
@@ -119,7 +119,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const { fullName, email } = req.body;
       
-      const updatedUser = await storage.updateUser(userId, { fullName, email });
+      const updatedUser = await storage.updateUser(userId, { 
+        full_name: fullName, // Convert from camelCase in API to snake_case in database
+        email 
+      });
       
       if (!updatedUser) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
