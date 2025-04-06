@@ -45,16 +45,9 @@ export async function initializeDatabase() {
         console.warn('Error running migrations from ./migrations:', error);
       }
       
-      // Also try with the 'drizzle' folder as a backup
-      try {
-        await migrate(db, { 
-          migrationsFolder: './drizzle',
-          migrationsTable: 'drizzle_migrations'
-        });
-        console.log('Migrations from ./drizzle completed');
-      } catch (error) {
-        console.warn('Error running migrations from ./drizzle:', error);
-      }
+      // Since we're in Docker, the migration path might be different
+      // We won't attempt to use the drizzle folder since it doesn't exist
+      console.log('Skipping ./drizzle migrations as this folder does not exist');
       console.log('Migrations completed successfully');
     } catch (migrateError) {
       console.error('Migration error:', migrateError);
