@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       toast({
         title: "Giriş başarılı",
-        description: `Hoş geldiniz, ${data.user.fullName || data.user.username}!`,
+        description: `Hoş geldiniz, ${data.user.fullname || data.user.username}!`,
       });
     },
     onError: (error: Error) => {

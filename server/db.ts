@@ -72,7 +72,7 @@ export async function initializeDatabase() {
       await db.insert(users).values({
         username: 'admin',
         password: await hashPassword('admin123'),
-        fullName: 'Admin Kullanıcı', // Use camelCase to match schema
+        fullname: 'Admin Kullanıcı', // fullname olarak düzeltildi
         email: null,
         role: UserRole.ADMIN,
         isActive: true,

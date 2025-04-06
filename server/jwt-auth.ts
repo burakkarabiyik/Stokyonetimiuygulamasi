@@ -188,7 +188,7 @@ export function setupJwtAuth(app: any) {
   // Register endpoint (admin only)
   app.post('/api/register', isAdmin, async (req: Request, res: Response) => {
     try {
-      const { username, password, fullName, email, role } = req.body;
+      const { username, password, fullname, email, role } = req.body;
       
       // Validate input
       if (!username || !password) {
@@ -206,7 +206,7 @@ export function setupJwtAuth(app: any) {
       const [user] = await db.insert(users).values({
         username,
         password: await hashPassword(password),
-        fullName, // In the schema, this maps to 'fullname' column in DB
+        fullname, // Bu düzeltildi: fullName yerine fullname kullanıldı
         email,
         role: role || 'user',
         isActive: true,
