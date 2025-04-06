@@ -2,28 +2,58 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// User and Auth Tables
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  fullName: text("full_name"),
+  email: text("email"),
+  role: text("role").default("user").notNull(), // "admin" or "user"
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Locations Table
+export const locations = pgTable("locations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // depot, office, field
+  address: text("address"),
+  capacity: integer("capacity").default(10).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Servers Table with more fields
 export const servers = pgTable("servers", {
   id: serial("id").primaryKey(),
   serverId: text("server_id").notNull().unique(),
   model: text("model").notNull(),
   specs: text("specs").notNull(),
-  location: text("location").notNull(),
-  status: text("status").notNull(), // "active", "transit", "setup"
+  ipAddress: text("ip_address"),
+  username: text("username"),
+  password: text("password"),
+  locationId: integer("location_id").notNull(),
+  status: text("status").notNull(), // "passive", "setup", "shippable", "active"
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const serverNotes = pgTable("server_notes", {
   id: serial("id").primaryKey(),
   serverId: integer("server_id").notNull(),
   note: text("note").notNull(),
+  createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const serverTransfers = pgTable("server_transfers", {
   id: serial("id").primaryKey(),
   serverId: integer("server_id").notNull(),
-  fromLocation: text("from_location").notNull(),
-  toLocation: text("to_location").notNull(),
+  fromLocationId: integer("from_location_id").notNull(),
+  toLocationId: integer("to_location_id").notNull(),
+  transferredBy: integer("transferred_by").notNull(),
   transferDate: timestamp("transfer_date").notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -32,14 +62,21 @@ export const serverTransfers = pgTable("server_transfers", {
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   serverId: integer("server_id"),
-  type: text("type").notNull(), // "add", "transfer", "note", "maintenance", "delete"
+  type: text("type").notNull(), // "add", "transfer", "note", "maintenance", "delete", "setup", "shippable"
   description: text("description").notNull(),
+  userId: integer("user_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Schemas
-export const insertServerSchema = createInsertSchema(servers)
+export const insertUserSchema = createInsertSchema(users)
   .omit({ id: true, createdAt: true });
+
+export const insertLocationSchema = createInsertSchema(locations)
+  .omit({ id: true, createdAt: true });
+
+export const insertServerSchema = createInsertSchema(servers)
+  .omit({ id: true, createdAt: true, updatedAt: true });
 
 export const insertNoteSchema = createInsertSchema(serverNotes)
   .omit({ id: true, createdAt: true });
@@ -51,6 +88,12 @@ export const insertActivitySchema = createInsertSchema(activities)
   .omit({ id: true, createdAt: true });
 
 // Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
+
 export type Server = typeof servers.$inferSelect;
 export type InsertServer = z.infer<typeof insertServerSchema>;
 
@@ -65,16 +108,30 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
 // Enums for type safety
 export enum ServerStatus {
-  ACTIVE = "active",
-  TRANSIT = "transit",
-  SETUP = "setup"     // "maintenance" yerine "setup" (kurulumda) kullanıyoruz
+  PASSIVE = "passive",  // Yeni eklendi, henüz setup yapılmamış
+  SETUP = "setup",      // Kurulum aşamasında
+  SHIPPABLE = "shippable", // Kurulum tamamlandı, gönderilebilir
+  ACTIVE = "active",     // Sahada aktif
+  TRANSIT = "transit"    // Taşıma sürecinde
 }
 
 export enum ActivityType {
   ADD = "add",
   TRANSFER = "transfer",
   NOTE = "note",
-  MAINTENANCE = "maintenance",  // We keep "maintenance" in activities for backward compatibility
-  SETUP = "setup",              // But add a new SETUP type for new activities
+  SETUP = "setup",
+  SHIPPABLE = "shippable",
+  ACTIVE = "active",
   DELETE = "delete"
+}
+
+export enum LocationType {
+  DEPOT = "depot",
+  OFFICE = "office",
+  FIELD = "field"
+}
+
+export enum UserRole {
+  ADMIN = "admin",
+  USER = "user"
 }

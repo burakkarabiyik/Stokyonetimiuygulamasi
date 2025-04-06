@@ -8,15 +8,40 @@ import {
   Activity, 
   InsertActivity,
   ServerStatus,
-  ActivityType
+  ActivityType,
+  User,
+  InsertUser,
+  Location,
+  InsertLocation,
+  LocationType,
+  UserRole
 } from "@shared/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+
+const MemoryStore = createMemoryStore(session);
 
 // Interface for storage operations
 export interface IStorage {
+  // User operations
+  getUserById(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
+  
+  // Location operations
+  getAllLocations(): Promise<Location[]>;
+  getLocationById(id: number): Promise<Location | undefined>;
+  createLocation(location: InsertLocation): Promise<Location>;
+  updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
+  deleteLocation(id: number): Promise<boolean>;
+  
   // Server operations
   getAllServers(): Promise<Server[]>;
   getServerById(id: number): Promise<Server | undefined>;
   getServerByServerId(serverId: string): Promise<Server | undefined>;
+  getServersByLocation(locationId: number): Promise<Server[]>;
   createServer(server: InsertServer): Promise<Server>;
   updateServer(id: number, server: Partial<InsertServer>): Promise<Server | undefined>;
   deleteServer(id: number): Promise<boolean>;
@@ -40,33 +65,142 @@ export interface IStorage {
     total: number;
     active: number;
     transit: number;
-    setup: number; // Changed from maintenance to setup
+    setup: number;
+    passive: number;
+    shippable: number;
   }>;
+  
+  // Session store for auth
+  sessionStore: session.Store;
 }
 
 // In-memory storage implementation
 export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private locations: Map<number, Location>;
   private servers: Map<number, Server>;
   private serverNotes: Map<number, ServerNote[]>;
   private serverTransfers: Map<number, ServerTransfer[]>;
   private activities: Activity[];
+  private userIdCounter: number;
+  private locationIdCounter: number;
   private serverIdCounter: number;
   private noteIdCounter: number;
   private transferIdCounter: number;
   private activityIdCounter: number;
+  public sessionStore: session.Store;
 
   constructor() {
+    this.users = new Map();
+    this.locations = new Map();
     this.servers = new Map();
     this.serverNotes = new Map();
     this.serverTransfers = new Map();
     this.activities = [];
+    this.userIdCounter = 1;
+    this.locationIdCounter = 1;
     this.serverIdCounter = 1;
     this.noteIdCounter = 1;
     this.transferIdCounter = 1;
     this.activityIdCounter = 1;
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // Clear expired sessions every 24h
+    });
     
     // Initialize with sample data
     this.initSampleData();
+  }
+  
+  // User operations
+  async getUserById(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+  
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username
+    );
+  }
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const now = new Date();
+    const user: User = { 
+      ...insertUser, 
+      id,
+      createdAt: now
+    };
+    
+    this.users.set(id, user);
+    return user;
+  }
+  
+  async updateUser(id: number, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    
+    if (!existingUser) {
+      return undefined;
+    }
+    
+    const updatedUser = { 
+      ...existingUser, 
+      ...userUpdate 
+    };
+    
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async deleteUser(id: number): Promise<boolean> {
+    return this.users.delete(id);
+  }
+  
+  // Location operations
+  async getAllLocations(): Promise<Location[]> {
+    return Array.from(this.locations.values());
+  }
+  
+  async getLocationById(id: number): Promise<Location | undefined> {
+    return this.locations.get(id);
+  }
+  
+  async createLocation(insertLocation: InsertLocation): Promise<Location> {
+    const id = this.locationIdCounter++;
+    const now = new Date();
+    const location: Location = { 
+      ...insertLocation, 
+      id,
+      createdAt: now
+    };
+    
+    this.locations.set(id, location);
+    return location;
+  }
+  
+  async updateLocation(id: number, locationUpdate: Partial<InsertLocation>): Promise<Location | undefined> {
+    const existingLocation = this.locations.get(id);
+    
+    if (!existingLocation) {
+      return undefined;
+    }
+    
+    const updatedLocation = { 
+      ...existingLocation, 
+      ...locationUpdate 
+    };
+    
+    this.locations.set(id, updatedLocation);
+    return updatedLocation;
+  }
+  
+  async deleteLocation(id: number): Promise<boolean> {
+    return this.locations.delete(id);
+  }
+  
+  async getServersByLocation(locationId: number): Promise<Server[]> {
+    return Array.from(this.servers.values()).filter(
+      (server) => server.locationId === locationId
+    );
   }
 
   // Server operations
@@ -260,47 +394,119 @@ export class MemStorage implements IStorage {
   }
 
   // Dashboard statistics
-  async getServerStats(): Promise<{ total: number; active: number; transit: number; setup: number; }> {
+  async getServerStats(): Promise<{ total: number; active: number; transit: number; setup: number; passive: number; shippable: number; }> {
     const servers = Array.from(this.servers.values());
     
     return {
       total: servers.length,
       active: servers.filter(s => s.status === ServerStatus.ACTIVE).length,
       transit: servers.filter(s => s.status === ServerStatus.TRANSIT).length,
-      setup: servers.filter(s => s.status === ServerStatus.SETUP).length
+      setup: servers.filter(s => s.status === ServerStatus.SETUP).length,
+      passive: servers.filter(s => s.status === ServerStatus.PASSIVE).length,
+      shippable: servers.filter(s => s.status === ServerStatus.SHIPPABLE).length
     };
   }
   
   // Initialize with sample data
   private initSampleData() {
+    // Initialize sample locations
+    const locations: InsertLocation[] = [
+      {
+        name: "Ankara Veri Merkezi",
+        type: LocationType.DEPOT,
+        address: "Ankara, Yenimahalle, Batı Sanayi Sitesi 2. Cadde No:25",
+        capacity: 50,
+        isActive: true
+      },
+      {
+        name: "İstanbul Merkez Ofis",
+        type: LocationType.OFFICE,
+        address: "İstanbul, Maslak, Büyükdere Cad. No:128",
+        capacity: 15,
+        isActive: true
+      },
+      {
+        name: "İzmir Depo",
+        type: LocationType.DEPOT,
+        address: "İzmir, Konak, Sanayi Sitesi C Blok No:24",
+        capacity: 30,
+        isActive: true
+      },
+      {
+        name: "Antalya Sunucu Odası",
+        type: LocationType.FIELD,
+        address: "Antalya, Muratpaşa, Portakal Çiçeği Bulvarı No:12",
+        capacity: 5,
+        isActive: true
+      }
+    ];
+    
+    // Create locations
+    const locationMap = new Map<string, number>();
+    locations.forEach(location => {
+      const id = this.locationIdCounter++;
+      const now = new Date();
+      const newLocation: Location = {
+        ...location,
+        id,
+        createdAt: now
+      };
+      this.locations.set(id, newLocation);
+      locationMap.set(location.name, id);
+    });
+    
+    // Initialize sample servers with location IDs
     const servers: InsertServer[] = [
       {
         serverId: "SRV-2023-091",
         model: "Dell PowerEdge R740",
         specs: "2x Intel Xeon Gold 6230, 128GB RAM, 4x 1.8TB SSD",
-        location: "Ankara Depo",
-        status: ServerStatus.ACTIVE
+        locationId: locationMap.get("Ankara Veri Merkezi") || 1,
+        status: ServerStatus.ACTIVE,
+        ipAddress: "192.168.10.25",
+        username: "admin",
+        password: "securepass123"
       },
       {
         serverId: "SRV-2023-090",
         model: "HPE ProLiant DL380 Gen10",
         specs: "2x Intel Xeon Silver 4210, 64GB RAM, 2x 960GB SSD",
-        location: "İzmir Depo",
+        locationId: locationMap.get("İzmir Depo") || 3,
         status: ServerStatus.TRANSIT
       },
       {
         serverId: "SRV-2023-089",
         model: "Lenovo ThinkSystem SR650",
         specs: "1x Intel Xeon Silver 4214, 32GB RAM, 2x 480GB SSD",
-        location: "İstanbul Merkez",
-        status: ServerStatus.ACTIVE
+        locationId: locationMap.get("İstanbul Merkez Ofis") || 2,
+        status: ServerStatus.ACTIVE,
+        ipAddress: "192.168.20.15",
+        username: "root",
+        password: "p@ssw0rd2023"
       },
       {
         serverId: "SRV-2023-088",
         model: "Dell PowerEdge R640",
         specs: "2x Intel Xeon Gold 5218, 96GB RAM, 4x 960GB SSD",
-        location: "Ankara Depo",
+        locationId: locationMap.get("Ankara Veri Merkezi") || 1,
         status: ServerStatus.SETUP
+      },
+      {
+        serverId: "SRV-2023-087",
+        model: "Supermicro SuperServer 1029U-TR4T",
+        specs: "2x Intel Xeon Silver 4216, 64GB RAM, 2x 480GB SSD",
+        locationId: locationMap.get("Antalya Sunucu Odası") || 4,
+        status: ServerStatus.SHIPPABLE,
+        ipAddress: "192.168.15.10",
+        username: "administrator",
+        password: "AntalyaServ2023!"
+      },
+      {
+        serverId: "SRV-2023-086",
+        model: "Dell PowerEdge R740xd",
+        specs: "2x Intel Xeon Gold 5220, 96GB RAM, 8x 1.2TB SAS",
+        locationId: locationMap.get("Ankara Veri Merkezi") || 1,
+        status: ServerStatus.PASSIVE
       }
     ];
     
@@ -311,7 +517,8 @@ export class MemStorage implements IStorage {
       const newServer: Server = { 
         ...server, 
         id,
-        createdAt: new Date(now.getTime() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000) // Random date within last 10 days
+        createdAt: now,
+        updatedAt: now
       };
       
       this.servers.set(id, newServer);
@@ -320,54 +527,82 @@ export class MemStorage implements IStorage {
       this.addActivity({
         serverId: id,
         type: ActivityType.ADD,
-        description: `Sunucu eklendi: ${server.serverId}`
+        description: `Sunucu eklendi: ${server.serverId}`,
+        userId: null
       });
     });
     
-    // Create a transfer for SRV-2023-089
-    const server = Array.from(this.servers.values()).find(s => s.serverId === "SRV-2023-089");
-    if (server) {
-      const transferDate = new Date();
-      transferDate.setDate(transferDate.getDate() - 2);
-      
-      const transfer: InsertServerTransfer = {
-        serverId: server.id,
-        fromLocation: "Ankara Depo",
-        toLocation: "İstanbul Merkez",
-        transferDate: transferDate,
-        notes: "Düzenli bakım sonrası merkez ofise transfer"
-      };
-      
-      const id = this.transferIdCounter++;
-      const newTransfer: ServerTransfer = { 
-        ...transfer, 
-        id,
-        createdAt: new Date(transferDate.getTime() - 1000 * 60 * 60) // 1 hour before transfer
-      };
-      
-      const serverTransfers = this.serverTransfers.get(server.id) || [];
-      serverTransfers.push(newTransfer);
-      this.serverTransfers.set(server.id, serverTransfers);
-      
-      // Add activity
-      this.addActivity({
-        serverId: server.id,
-        type: ActivityType.TRANSFER,
-        description: `${transfer.fromLocation}'dan ${transfer.toLocation}'a transfer edildi`
-      });
-    }
+    // Create server notes
+    const notes = [
+      {
+        serverId: 1,
+        note: "RAID yapılandırması güncellendi. RAID-10 olarak ayarlandı.",
+        createdBy: 1
+      },
+      {
+        serverId: 3,
+        note: "Firmware güncellemesi yapıldı. BIOS version 2.4.6",
+        createdBy: 1
+      },
+      {
+        serverId: 4,
+        note: "RAM modüllerinden biri arızalı, değişim için talep oluşturuldu.",
+        createdBy: 1
+      },
+      {
+        serverId: 5,
+        note: "Soğutma sistemi optimize edildi. Fan ayarları düzenlendi.",
+        createdBy: 1
+      }
+    ];
     
-    // Add maintenance activity for SRV-2023-088
-    const maintenanceServer = Array.from(this.servers.values()).find(s => s.serverId === "SRV-2023-088");
-    if (maintenanceServer) {
-      const maintenanceDate = new Date();
-      maintenanceDate.setDate(maintenanceDate.getDate() - 1);
+    notes.forEach(note => {
+      this.addServerNote(note);
+    });
+    
+    // Create a transfer example
+    const transferDate = new Date();
+    transferDate.setDate(transferDate.getDate() - 2);
+    
+    const transfer = {
+      serverId: 3,
+      fromLocationId: locationMap.get("Ankara Veri Merkezi") || 1,
+      toLocationId: locationMap.get("İstanbul Merkez Ofis") || 2,
+      transferredBy: 1,
+      transferDate: transferDate,
+      notes: "Merkez ofise tüm kurulumları yapılmış şekilde devredildi."
+    };
+    
+    const transferId = this.transferIdCounter++;
+    const newTransfer: ServerTransfer = { 
+      ...transfer, 
+      id: transferId,
+      createdAt: new Date(transferDate.getTime() - 1000 * 60 * 60) // 1 hour before transfer
+    };
+    
+    const serverTransfers = this.serverTransfers.get(transfer.serverId) || [];
+    serverTransfers.push(newTransfer);
+    this.serverTransfers.set(transfer.serverId, serverTransfers);
+    
+    // Add activity for transfer
+    this.addActivity({
+      serverId: transfer.serverId,
+      type: ActivityType.TRANSFER,
+      description: `Ankara Veri Merkezi'nden İstanbul Merkez Ofis'e transfer edildi`,
+      userId: transfer.transferredBy
+    });
+    
+    // Add setup activity for SRV-2023-088
+    const setupServer = Array.from(this.servers.values()).find(s => s.serverId === "SRV-2023-088");
+    if (setupServer) {
+      const setupDate = new Date();
+      setupDate.setDate(setupDate.getDate() - 1);
       
       this.addActivity({
-        serverId: maintenanceServer.id,
+        serverId: setupServer.id,
         type: ActivityType.SETUP,
-        description: `SRV-2023-088 sunucusu kuruluma alındı`,
-        createdAt: maintenanceDate
+        description: `${setupServer.serverId} sunucusu kuruluma alındı`,
+        userId: 1
       });
     }
   }

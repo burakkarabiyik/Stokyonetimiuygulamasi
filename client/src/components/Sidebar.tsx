@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 
 interface SidebarProps {
   open: boolean;
@@ -41,6 +41,16 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       )
     },
     {
+      name: "Lokasyonlar",
+      path: "/locations",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      )
+    },
+    {
       name: "Transfer İşlemleri",
       path: "/transfers",
       icon: (
@@ -59,8 +69,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       )
     },
     {
-      name: "Ayarlar",
-      path: "/settings",
+      name: "Profil",
+      path: "/profile",
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -92,23 +102,26 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
       <nav className="mt-5 px-2 space-y-1">
         {navItems.map((item) => (
-          <Link key={item.path} href={item.path}>
-            <a 
-              className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
-                isActive(item.path)
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-              onClick={() => {
-                if (window.innerWidth < 768) {
-                  onClose();
-                }
-              }}
-            >
-              <span className="mr-3">{item.icon}</span>
-              {item.name}
-            </a>
-          </Link>
+          <a 
+            key={item.path}
+            href={item.path}
+            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
+              isActive(item.path)
+                ? 'bg-primary-50 text-primary-700'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+            onClick={(e) => {
+              e.preventDefault();
+              window.history.pushState(null, "", item.path);
+              window.dispatchEvent(new Event("popstate"));
+              if (window.innerWidth < 768) {
+                onClose();
+              }
+            }}
+          >
+            <span className="mr-3">{item.icon}</span>
+            {item.name}
+          </a>
         ))}
       </nav>
     </div>
