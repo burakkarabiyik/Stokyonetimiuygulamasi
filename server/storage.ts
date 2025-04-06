@@ -16,7 +16,9 @@ import {
   ServerModel,
   InsertServerModel,
   LocationType,
-  UserRole
+  UserRole,
+  ServerDetail,
+  InsertServerDetail
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -71,6 +73,13 @@ export interface IStorage {
   getServerActivities(serverId: number): Promise<Activity[]>;
   addActivity(activity: InsertActivity): Promise<Activity>;
   
+  // Server Details operations - sanal makineler ve diğer ek bilgiler
+  getServerDetails(serverId: number): Promise<ServerDetail[]>;
+  getServerDetailById(id: number): Promise<ServerDetail | undefined>;
+  addServerDetail(detail: InsertServerDetail): Promise<ServerDetail>;
+  updateServerDetail(id: number, detail: Partial<InsertServerDetail>): Promise<ServerDetail | undefined>;
+  deleteServerDetail(id: number): Promise<boolean>;
+  
   // Dashboard statistics
   getServerStats(): Promise<{
     total: number;
@@ -93,6 +102,7 @@ export class MemStorage implements IStorage {
   private servers: Map<number, Server>;
   private serverNotes: Map<number, ServerNote[]>;
   private serverTransfers: Map<number, ServerTransfer[]>;
+  private serverDetails: Map<number, ServerDetail[]>; // Sanal makine detayları için yeni Map
   private activities: Activity[];
   private userIdCounter: number;
   private locationIdCounter: number;
@@ -101,6 +111,7 @@ export class MemStorage implements IStorage {
   private noteIdCounter: number;
   private transferIdCounter: number;
   private activityIdCounter: number;
+  private serverDetailIdCounter: number; // Sanal makine detayları ID sayacı
   public sessionStore: session.Store;
 
   constructor() {
@@ -110,6 +121,7 @@ export class MemStorage implements IStorage {
     this.servers = new Map();
     this.serverNotes = new Map();
     this.serverTransfers = new Map();
+    this.serverDetails = new Map(); // Sanal makine detayları için Map
     this.activities = [];
     this.userIdCounter = 1;
     this.locationIdCounter = 1;
@@ -118,6 +130,7 @@ export class MemStorage implements IStorage {
     this.noteIdCounter = 1;
     this.transferIdCounter = 1;
     this.activityIdCounter = 1;
+    this.serverDetailIdCounter = 1; // Sanal makine detayları için sayaç
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Clear expired sessions every 24h
     });
@@ -303,9 +316,114 @@ export class MemStorage implements IStorage {
       // Remove related data
       this.serverNotes.delete(id);
       this.serverTransfers.delete(id);
+      this.serverDetails.delete(id); // Sunucu detaylarını da sil
     }
     
     return deleted;
+  }
+  
+  // Server Detail operations (Sanal Makineler)
+  async getServerDetails(serverId: number): Promise<ServerDetail[]> {
+    return this.serverDetails.get(serverId) || [];
+  }
+
+  async getServerDetailById(id: number): Promise<ServerDetail | undefined> {
+    for (const details of this.serverDetails.values()) {
+      const detail = details.find(d => d.id === id);
+      if (detail) {
+        return detail;
+      }
+    }
+    return undefined;
+  }
+
+  async addServerDetail(detail: InsertServerDetail): Promise<ServerDetail> {
+    const id = this.serverDetailIdCounter++;
+    const now = new Date();
+    const newDetail: ServerDetail = {
+      ...detail,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    const serverDetails = this.serverDetails.get(detail.serverId) || [];
+    serverDetails.push(newDetail);
+    this.serverDetails.set(detail.serverId, serverDetails);
+
+    // Add an activity
+    this.addActivity({
+      serverId: detail.serverId,
+      type: ActivityType.SETUP,
+      description: `Sanal makine eklendi: ${detail.vmName || 'VM'} (${detail.ipAddress})`
+    });
+
+    return newDetail;
+  }
+
+  async updateServerDetail(id: number, detailUpdate: Partial<InsertServerDetail>): Promise<ServerDetail | undefined> {
+    // Önce detayı bul
+    let foundDetail: ServerDetail | undefined;
+    let serverId: number | undefined;
+    
+    for (const [serverIdKey, details] of this.serverDetails.entries()) {
+      const detailIndex = details.findIndex(d => d.id === id);
+      if (detailIndex >= 0) {
+        foundDetail = details[detailIndex];
+        serverId = serverIdKey;
+        break;
+      }
+    }
+    
+    if (!foundDetail || !serverId) {
+      return undefined;
+    }
+    
+    // Detayı güncelle
+    const updatedDetail: ServerDetail = {
+      ...foundDetail,
+      ...detailUpdate,
+      updatedAt: new Date()
+    };
+    
+    // Detay listesini güncelle
+    const details = this.serverDetails.get(serverId) || [];
+    const updatedDetails = details.map(d => d.id === id ? updatedDetail : d);
+    this.serverDetails.set(serverId, updatedDetails);
+    
+    // Activity ekle
+    this.addActivity({
+      serverId: serverId,
+      type: ActivityType.SETUP,
+      description: `Sanal makine güncellendi: ${updatedDetail.vmName || 'VM'} (${updatedDetail.ipAddress})`
+    });
+    
+    return updatedDetail;
+  }
+
+  async deleteServerDetail(id: number): Promise<boolean> {
+    // Detayı bul ve sil
+    for (const [serverId, details] of this.serverDetails.entries()) {
+      const detailIndex = details.findIndex(d => d.id === id);
+      if (detailIndex >= 0) {
+        const detail = details[detailIndex];
+        
+        // Listeden kaldır
+        details.splice(detailIndex, 1);
+        this.serverDetails.set(serverId, details);
+        
+        // Activity ekle
+        this.addActivity({
+          serverId: serverId,
+          type: ActivityType.DELETE,
+          description: `Sanal makine silindi: ${detail.vmName || 'VM'} (${detail.ipAddress})`
+        });
+        
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   // Note operations
@@ -732,6 +850,66 @@ export class MemStorage implements IStorage {
     const serverTransfers = this.serverTransfers.get(transfer.serverId) || [];
     serverTransfers.push(newTransfer);
     this.serverTransfers.set(transfer.serverId, serverTransfers);
+    
+    // Örnek sanal makineler oluştur
+    const virtualMachines: InsertServerDetail[] = [
+      {
+        serverId: 1, // Active server (Dell PowerEdge R740)
+        vmName: "VM-WEB-001",
+        ipAddress: "192.168.10.101",
+        username: "webadmin",
+        password: "websrv123",
+        notes: "Web sunucusu - Nginx + PHP-FPM"
+      },
+      {
+        serverId: 1,
+        vmName: "VM-DB-001",
+        ipAddress: "192.168.10.102",
+        username: "dbadmin",
+        password: "dbpass456",
+        notes: "Veritabanı sunucusu - PostgreSQL"
+      },
+      {
+        serverId: 1,
+        vmName: "VM-APP-001",
+        ipAddress: "192.168.10.103",
+        username: "appadmin",
+        password: "appserv789",
+        notes: "Uygulama sunucusu - NodeJS"
+      },
+      {
+        serverId: 3, // Active server (Lenovo ThinkSystem SR650)
+        vmName: "VM-CACHE-001",
+        ipAddress: "192.168.20.101",
+        username: "cacheadmin",
+        password: "cache234",
+        notes: "Önbellek sunucusu - Redis"
+      },
+      {
+        serverId: 3,
+        vmName: "VM-QUEUE-001",
+        ipAddress: "192.168.20.102",
+        username: "queueadmin",
+        password: "queue567",
+        notes: "Kuyruk sunucusu - RabbitMQ"
+      }
+    ];
+
+    // Sanal makineleri oluştur
+    virtualMachines.forEach(vm => {
+      const id = this.serverDetailIdCounter++;
+      const now = new Date();
+      const newDetail: ServerDetail = {
+        ...vm,
+        id,
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      const serverDetails = this.serverDetails.get(vm.serverId) || [];
+      serverDetails.push(newDetail);
+      this.serverDetails.set(vm.serverId, serverDetails);
+    });
     
     // Add activity for transfer
     this.addActivity({

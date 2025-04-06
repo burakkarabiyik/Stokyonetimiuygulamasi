@@ -705,6 +705,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleError(err, res);
     }
   });
+  
+  // GET /api/servers/:id/details - Get server details (virtual machines)
+  app.get("/api/servers/:id/details", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const server = await storage.getServerById(id);
+      if (!server) {
+        return res.status(404).json({ error: "Sunucu bulunamadı" });
+      }
+      
+      const details = await storage.getServerDetails(id);
+      res.json(details);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // GET /api/server-details/:id - Get a specific server detail by id
+  app.get("/api/server-details/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const detail = await storage.getServerDetailById(id);
+      if (!detail) {
+        return res.status(404).json({ error: "Sunucu detayı bulunamadı" });
+      }
+      
+      res.json(detail);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // POST /api/servers/:id/details - Add a new server detail
+  app.post("/api/servers/:id/details", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const server = await storage.getServerById(id);
+      if (!server) {
+        return res.status(404).json({ error: "Sunucu bulunamadı" });
+      }
+      
+      // Validate data
+      const detailData = {
+        ...req.body,
+        serverId: id
+      };
+      
+      const detail = await storage.addServerDetail(detailData);
+      
+      // If this is the first detail for the server, update the server status if it's in passive or setup state
+      const allDetails = await storage.getServerDetails(id);
+      if (allDetails.length === 1 && (server.status === ServerStatus.PASSIVE || server.status === ServerStatus.SETUP)) {
+        await storage.updateServer(id, {
+          status: ServerStatus.SHIPPABLE
+        });
+      }
+      
+      res.status(201).json(detail);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // PUT /api/server-details/:id - Update a server detail
+  app.put("/api/server-details/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const detail = await storage.getServerDetailById(id);
+      if (!detail) {
+        return res.status(404).json({ error: "Sunucu detayı bulunamadı" });
+      }
+      
+      const updatedDetail = await storage.updateServerDetail(id, req.body);
+      res.json(updatedDetail);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+  
+  // DELETE /api/server-details/:id - Delete a server detail
+  app.delete("/api/server-details/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const deleted = await storage.deleteServerDetail(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Sunucu detayı bulunamadı" });
+      }
+      
+      res.status(204).end();
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

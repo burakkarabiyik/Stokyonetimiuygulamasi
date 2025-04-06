@@ -40,11 +40,26 @@ export const servers = pgTable("servers", {
   serverId: text("server_id").notNull().unique(),
   model: text("model").notNull(),
   specs: text("specs").notNull(),
+  // Ana sunucu erişim bilgileri (opsiyonel) - artık ana bilgileri 
+  // bunlar yerine sunucu detayları tablosundan alacağız
   ipAddress: text("ip_address"),
   username: text("username"),
   password: text("password"),
   locationId: integer("location_id").notNull(),
   status: text("status").notNull(), // "passive", "setup", "shippable", "active"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Sunucu detayları tablosu - sanal makineler ve diğer ek IP'ler için
+export const serverDetails = pgTable("server_details", {
+  id: serial("id").primaryKey(),
+  serverId: integer("server_id").notNull().references(() => servers.id, { onDelete: 'cascade' }),
+  vmName: text("vm_name"), // Sanal makine adı (veya eklenecek sunucu detayı için isim)
+  ipAddress: text("ip_address").notNull(),
+  username: text("username"),
+  password: text("password"),
+  notes: text("notes"), // Ek notlar
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -99,6 +114,9 @@ export const insertTransferSchema = createInsertSchema(serverTransfers)
 export const insertActivitySchema = createInsertSchema(activities)
   .omit({ id: true, createdAt: true });
 
+export const insertServerDetailSchema = createInsertSchema(serverDetails)
+  .omit({ id: true, createdAt: true, updatedAt: true });
+
 // Batch ekleme için şema
 export const batchServerSchema = z.object({
   quantity: z.number().min(1).max(10),
@@ -128,6 +146,9 @@ export type InsertServerTransfer = z.infer<typeof insertTransferSchema>;
 
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
+export type ServerDetail = typeof serverDetails.$inferSelect;
+export type InsertServerDetail = z.infer<typeof insertServerDetailSchema>;
 
 // Enums for type safety
 export enum ServerStatus {

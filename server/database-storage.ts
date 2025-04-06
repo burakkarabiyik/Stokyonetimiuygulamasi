@@ -8,6 +8,7 @@ import {
   serverNotes, 
   serverTransfers, 
   activities,
+  serverDetails,
   User,
   InsertUser,
   Location,
@@ -22,9 +23,12 @@ import {
   InsertServerTransfer,
   Activity,
   InsertActivity,
-  ServerStatus
+  ServerDetail,
+  InsertServerDetail,
+  ServerStatus,
+  ActivityType
 } from '@shared/schema';
-import { eq, desc, isNull, and, sql } from 'drizzle-orm';
+import { eq, desc, asc, isNull, and, sql } from 'drizzle-orm';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 
@@ -379,6 +383,103 @@ export class DatabaseStorage implements IStorage {
     }).returning();
     
     return activity;
+  }
+  
+  // Server Detail operations
+  async getServerDetails(serverId: number): Promise<ServerDetail[]> {
+    return await db
+      .select()
+      .from(serverDetails)
+      .where(eq(serverDetails.serverId, serverId))
+      .orderBy(asc(serverDetails.id));
+  }
+
+  async getServerDetailById(id: number): Promise<ServerDetail | undefined> {
+    const [detail] = await db
+      .select()
+      .from(serverDetails)
+      .where(eq(serverDetails.id, id));
+    return detail;
+  }
+
+  async addServerDetail(detail: InsertServerDetail): Promise<ServerDetail> {
+    const [newDetail] = await db
+      .insert(serverDetails)
+      .values({
+        ...detail,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    // Add activity
+    await this.addActivity({
+      serverId: detail.serverId,
+      type: ActivityType.SETUP,
+      description: `Sanal makine eklendi: ${detail.vmName || 'VM'} (${detail.ipAddress})`
+    });
+    
+    return newDetail;
+  }
+
+  async updateServerDetail(id: number, detailUpdate: Partial<InsertServerDetail>): Promise<ServerDetail | undefined> {
+    const [detail] = await db
+      .select()
+      .from(serverDetails)
+      .where(eq(serverDetails.id, id));
+    
+    if (!detail) {
+      return undefined;
+    }
+    
+    const [updatedDetail] = await db
+      .update(serverDetails)
+      .set({
+        ...detailUpdate,
+        updatedAt: new Date()
+      })
+      .where(eq(serverDetails.id, id))
+      .returning();
+    
+    // Add activity
+    await this.addActivity({
+      serverId: detail.serverId,
+      type: ActivityType.SETUP,
+      description: `Sanal makine güncellendi: ${updatedDetail.vmName || 'VM'} (${updatedDetail.ipAddress})`
+    });
+    
+    return updatedDetail;
+  }
+
+  async deleteServerDetail(id: number): Promise<boolean> {
+    const [detail] = await db
+      .select()
+      .from(serverDetails)
+      .where(eq(serverDetails.id, id));
+    
+    if (!detail) {
+      return false;
+    }
+    
+    const result = await db
+      .delete(serverDetails)
+      .where(eq(serverDetails.id, id))
+      .returning({
+        id: serverDetails.id
+      });
+    
+    if (result.length > 0) {
+      // Add activity
+      await this.addActivity({
+        serverId: detail.serverId,
+        type: ActivityType.DELETE,
+        description: `Sanal makine silindi: ${detail.vmName || 'VM'} (${detail.ipAddress})`
+      });
+      
+      return true;
+    }
+    
+    return false;
   }
   
   // Dashboard statistics
