@@ -1,0 +1,190 @@
+Building 1/1 to docker.io/library/stokyonetimiuygulamasi-app:latest                                            0.1s
+ ✔ Service app  Built                                                                                              7.9s
+
+C:\Users\Burak\Stokyonetimiuygulamasi>docker compose up
+time="2025-04-06T20:47:32+03:00" level=warning msg="C:\\Users\\Burak\\Stokyonetimiuygulamasi\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+[+] Running 3/3
+ ✔ Network stokyonetimiuygulamasi_server-network  Created                                                          0.0s
+ ✔ Container stokyonetimiuygulamasi-db-1          Created                                                          0.1s
+ ✔ Container stokyonetimiuygulamasi-app-1         Created                                                          0.1s
+Attaching to app-1, db-1
+db-1   | The files belonging to this database system will be owned by user "postgres".
+db-1   | This user must also own the server process.
+db-1   |
+db-1   | The database cluster will be initialized with locale "en_US.utf8".
+db-1   | The default database encoding has accordingly been set to "UTF8".
+db-1   | The default text search configuration will be set to "english".
+db-1   |
+db-1   | Data page checksums are disabled.
+db-1   |
+db-1   | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+db-1   | creating subdirectories ... ok
+db-1   | selecting dynamic shared memory implementation ... posix
+db-1   | selecting default max_connections ... 100
+db-1   | selecting default shared_buffers ... 128MB
+db-1   | selecting default time zone ... UTC
+db-1   | creating configuration files ... ok
+db-1   | running bootstrap script ... ok
+db-1   | sh: locale: not found
+db-1   | 2025-04-06 17:47:33.562 UTC [35] WARNING:  no usable system locales were found
+db-1   | performing post-bootstrap initialization ... ok
+db-1   | syncing data to disk ... ok
+db-1   |
+db-1   |
+db-1   | Success. You can now start the database server using:
+db-1   |
+db-1   |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+db-1   |
+db-1   | initdb: warning: enabling "trust" authentication for local connections
+db-1   | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+db-1   | waiting for server to start....2025-04-06 17:47:34.160 UTC [41] LOG:  starting PostgreSQL 15.12 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+db-1   | 2025-04-06 17:47:34.162 UTC [41] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+db-1   | 2025-04-06 17:47:34.167 UTC [44] LOG:  database system was shut down at 2025-04-06 17:47:33 UTC
+db-1   | 2025-04-06 17:47:34.171 UTC [41] LOG:  database system is ready to accept connections
+db-1   |  done
+db-1   | server started
+db-1   | CREATE DATABASE
+db-1   |
+db-1   |
+db-1   | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+db-1   |
+db-1   | waiting for server to shut down....2025-04-06 17:47:34.284 UTC [41] LOG:  received fast shutdown request
+db-1   | 2025-04-06 17:47:34.286 UTC [41] LOG:  aborting any active transactions
+db-1   | 2025-04-06 17:47:34.288 UTC [41] LOG:  background worker "logical replication launcher" (PID 47) exited with exit code 1
+db-1   | 2025-04-06 17:47:34.288 UTC [42] LOG:  shutting down
+db-1   | 2025-04-06 17:47:34.290 UTC [42] LOG:  checkpoint starting: shutdown immediate
+db-1   | 2025-04-06 17:47:34.405 UTC [42] LOG:  checkpoint complete: wrote 920 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.012 s, sync=0.096 s, total=0.117 s; sync files=301, longest=0.004 s, average=0.001 s; distance=4233 kB, estimate=4233 kB
+db-1   | 2025-04-06 17:47:34.409 UTC [41] LOG:  database system is shut down
+db-1   |  done
+db-1   | server stopped
+db-1   |
+db-1   | PostgreSQL init process complete; ready for start up.
+db-1   |
+db-1   | 2025-04-06 17:47:34.502 UTC [1] LOG:  starting PostgreSQL 15.12 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit
+db-1   | 2025-04-06 17:47:34.503 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+db-1   | 2025-04-06 17:47:34.503 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+db-1   | 2025-04-06 17:47:34.508 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+db-1   | 2025-04-06 17:47:34.512 UTC [57] LOG:  database system was shut down at 2025-04-06 17:47:34 UTC
+db-1   | 2025-04-06 17:47:34.517 UTC [1] LOG:  database system is ready to accept connections
+
+
+
+
+
+
+
+
+
+
+
+
+app-1  | Waiting for PostgreSQL...
+app-1  | Running migrations...
+app-1  | Connection to db (172.24.0.2) 5432 port [tcp/postgresql] succeeded!
+app-1  |
+app-1  | > rest-express@1.0.0 db:push
+app-1  | > drizzle-kit push
+app-1  |
+app-1  | No config path provided, using default 'drizzle.config.ts'
+app-1  | Reading config file '/app/drizzle.config.ts'
+app-1  | Using 'pg' driver for database querying
+app-1  | [⣷] Pulling schema from database...
+[✓] Pulling schema from database...
+app-1  | [✓] Changes applied
+app-1  | Starting the application...
+app-1  |
+app-1  | > rest-express@1.0.0 start
+app-1  | > NODE_ENV=production node dist/index.js
+app-1  |
+app-1  | Checking for missing columns and fixing if needed...
+app-1  | 5:47:40 PM [express] Starting database initialization sequence...
+app-1  | 5:47:40 PM [express] Database setup attempt 1/5...
+app-1  | Initializing database...
+app-1  | Running migrations to create database tables...
+app-1  | Attempting migrations from ./migrations...
+app-1  | Found 2 SQL migration files in ./migrations
+app-1  | Servers table exists, checking for missing columns...
+db-1   | 2025-04-06 17:47:40.105 UTC [70] ERROR:  relation "activities" already exists
+app-1  | Users table exists, checking for column issues...
+db-1   | 2025-04-06 17:47:40.105 UTC [70] STATEMENT:  CREATE TABLE "activities" (
+app-1  | Error running migrations from ./migrations: PostgresError: relation "activities" already exists
+db-1   |                "id" serial PRIMARY KEY NOT NULL,
+app-1  |     at ErrorResponse (file:///app/node_modules/postgres/src/connection.js:788:26)
+db-1   |                "server_id" integer,
+app-1  |     at handle (file:///app/node_modules/postgres/src/connection.js:474:6)
+db-1   |                "type" text NOT NULL,
+app-1  |     at Socket.data (file:///app/node_modules/postgres/src/connection.js:315:9)
+db-1   |                "description" text NOT NULL,
+app-1  |     at Socket.emit (node:events:524:28)
+db-1   |                "user_id" integer,
+app-1  |     at addChunk (node:internal/streams/readable:561:12)
+db-1   |                "created_at" timestamp DEFAULT now() NOT NULL
+app-1  |     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+db-1   |        );
+app-1  |     at Readable.push (node:internal/streams/readable:392:5)
+db-1   |
+app-1  |     at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+db-1   | 2025-04-06 17:47:40.112 UTC [70] ERROR:  relation "activities" already exists
+app-1  |   severity_local: 'ERROR',
+db-1   | 2025-04-06 17:47:40.112 UTC [70] STATEMENT:  CREATE TABLE "activities" (
+app-1  |   severity: 'ERROR',
+db-1   |                "id" serial PRIMARY KEY NOT NULL,
+app-1  |   code: '42P07',
+db-1   |                "server_id" integer,
+app-1  |   file: 'heap.c',
+db-1   |                "type" text NOT NULL,
+app-1  |   line: '1149',
+db-1   |                "description" text NOT NULL,
+app-1 exited with code 0
+app-1  |   routine: 'heap_create_with_catalog'
+db-1   |                "user_id" integer,
+app-1  | }
+db-1   |                "created_at" timestamp DEFAULT now() NOT NULL
+app-1  | Attempting migrations from /app/migrations...
+db-1   |        );
+app-1  | Found 2 SQL migration files in /app/migrations
+db-1   |
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+app-1  |   code: '42P06',
+app-1  |   message: 'schema "drizzle" already exists, skipping',
+app-1  |   file: 'schemacmds.c',
+app-1  |   line: '131',
+app-1  |   routine: 'CreateSchemaCommand'
+app-1  | }
+app-1  | {
+app-1  |   severity_local: 'NOTICE',
+app-1  |   severity: 'NOTICE',
+app-1  |   code: '42P07',
+app-1  |   message: 'relation "drizzle_migrations" already exists, skipping',
+app-1  |   file: 'parse_utilcmd.c',
+app-1  |   line: '207',
+app-1  |   routine: 'transformCreateStmt'
+app-1  | }
+app-1  | Server notes table exists, checking for missing columns...
+app-1  | Error running migrations from /app/migrations: PostgresError: relation "activities" already exists
+app-1  |     at ErrorResponse (file:///app/node_modules/postgres/src/connection.js:788:26)
+app-1  |     at handle (file:///app/node_modules/postgres/src/connection.js:474:6)
+app-1  |     at Socket.data (file:///app/node_modules/postgres/src/connection.js:315:9)
+app-1  |     at Socket.emit (node:events:524:28)
+app-1  |     at addChunk (node:internal/streams/readable:561:12)
+app-1  |     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+app-1  |     at Readable.push (node:internal/streams/readable:392:5)
+app-1  |     at TCP.onStreamRead (node:internal/stream_base_commons:191:23) {
+app-1  |   severity_local: 'ERROR',
+app-1  |   severity: 'ERROR',
+app-1  |   code: '42P07',
+app-1  |   file: 'heap.c',
+app-1  |   line: '1149',
+app-1  |   routine: 'heap_create_with_catalog'
+app-1  | }
+app-1  | Attempting migrations from ../migrations...
+app-1  | Path ../migrations does not exist, skipping...
+app-1  | Attempting migrations from /migrations...
+app-1  | Path /migrations does not exist, skipping...
+app-1  | Attempting migrations from ./drizzle/migrations...
+app-1  | Found 2 SQL migration files in ./drizzle/migrations
+app-1  | Migration journal not found in ./drizzle/migrations, but will consider this successful
+app-1  | Creating default admin user...
+app-1  | Database column check completed successfully
