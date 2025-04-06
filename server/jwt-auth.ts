@@ -206,7 +206,7 @@ export function setupJwtAuth(app: any) {
       const [user] = await db.insert(users).values({
         username,
         password: await hashPassword(password),
-        fullName,
+        fullName, // In the schema, this maps to 'fullname' column in DB
         email,
         role: role || 'user',
         isActive: true,

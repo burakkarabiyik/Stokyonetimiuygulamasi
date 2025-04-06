@@ -71,16 +71,7 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
         description: "Sunucu başarıyla eklendi.",
       });
       
-      // Reset form and close modal
-      setFormData({
-        serverId: "",
-        model: "",
-        specs: "",
-        locationId: locations && locations.length > 0 ? locations[0].id : 0,
-        status: ServerStatus.PASSIVE,
-        notes: ""
-      });
-      
+      resetForm();
       onClose();
     },
     onError: (error: any) => {
@@ -91,6 +82,17 @@ export default function AddServerModal({ isOpen, onClose }: AddServerModalProps)
       });
     }
   });
+
+  const resetForm = () => {
+    setFormData({
+      serverId: "",
+      model: "",
+      specs: "",
+      locationId: locations && locations.length > 0 ? locations[0].id : 0,
+      status: ServerStatus.PASSIVE,
+      notes: ""
+    });
+  };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

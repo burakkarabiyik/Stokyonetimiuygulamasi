@@ -16,7 +16,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  fullName: text("full_name"),  // Use actual database column name from Docker container
+  fullName: text("fullname"),  // Use actual database column name
   email: text("email"),
   role: text("role").default("user").notNull(), // "admin" or "user"
   isActive: boolean("is_active").default(true).notNull(),
