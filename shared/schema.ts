@@ -2,6 +2,15 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Sunucu modelleri tablosu
+export const serverModels = pgTable("server_models", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  brand: text("brand").notNull(),
+  specs: text("specs").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // User and Auth Tables
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -69,6 +78,9 @@ export const activities = pgTable("activities", {
 });
 
 // Schemas
+export const insertServerModelSchema = createInsertSchema(serverModels)
+  .omit({ id: true, createdAt: true });
+
 export const insertUserSchema = createInsertSchema(users)
   .omit({ id: true, createdAt: true });
 
@@ -87,7 +99,18 @@ export const insertTransferSchema = createInsertSchema(serverTransfers)
 export const insertActivitySchema = createInsertSchema(activities)
   .omit({ id: true, createdAt: true });
 
+// Batch ekleme için şema
+export const batchServerSchema = z.object({
+  quantity: z.number().min(1).max(10),
+  modelId: z.number().min(1, "Sunucu modeli seçilmelidir"),
+  locationId: z.number().min(1, "Lokasyon seçilmelidir"),
+  status: z.string().default(ServerStatus.PASSIVE),
+});
+
 // Types
+export type ServerModel = typeof serverModels.$inferSelect;
+export type InsertServerModel = z.infer<typeof insertServerModelSchema>;
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 

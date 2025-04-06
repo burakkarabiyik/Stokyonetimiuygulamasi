@@ -7,6 +7,8 @@ import {
   insertTransferSchema,
   insertLocationSchema,
   insertUserSchema,
+  insertServerModelSchema,
+  batchServerSchema,
   ServerStatus,
   ActivityType,
   LocationType,
@@ -391,6 +393,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Server Model routes
+  app.get("/api/server-models", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const models = await storage.getAllServerModels();
+      res.json(models);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  app.get("/api/server-models/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      const model = await storage.getServerModelById(id);
+      if (!model) {
+        return res.status(404).json({ error: "Sunucu modeli bulunamadı" });
+      }
+      
+      res.json(model);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  app.post("/api/server-models", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const modelData = insertServerModelSchema.parse(req.body);
+      
+      const model = await storage.createServerModel(modelData);
+      res.status(201).json(model);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  app.put("/api/server-models/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      // Partial validation
+      const modelData = insertServerModelSchema.partial().parse(req.body);
+      
+      const updatedModel = await storage.updateServerModel(id, modelData);
+      if (!updatedModel) {
+        return res.status(404).json({ error: "Sunucu modeli bulunamadı" });
+      }
+      
+      res.json(updatedModel);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  app.delete("/api/server-models/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Geçersiz ID" });
+      }
+      
+      // Check if model is used by servers
+      const servers = await storage.getAllServers();
+      const modelInUse = servers.some(server => {
+        const modelName = `${server.model}`.trim();
+        const storedModel = storage.getServerModelById(id);
+        return modelName.includes(`${storedModel?.brand} ${storedModel?.name}`);
+      });
+      
+      if (modelInUse) {
+        return res.status(400).json({ error: "Bu model kullanımdadır ve silinemez." });
+      }
+      
+      const deleted = await storage.deleteServerModel(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Sunucu modeli bulunamadı" });
+      }
+      
+      res.status(204).end();
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
+  // Batch server creation
+  app.post("/api/servers/batch", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const batchData = batchServerSchema.parse(req.body);
+      
+      // Check if model exists
+      const model = await storage.getServerModelById(batchData.modelId);
+      if (!model) {
+        return res.status(404).json({ error: "Sunucu modeli bulunamadı" });
+      }
+      
+      // Check if location exists
+      const location = await storage.getLocationById(batchData.locationId);
+      if (!location) {
+        return res.status(404).json({ error: "Lokasyon bulunamadı" });
+      }
+      
+      // Check capacity constraints
+      const existingServersCount = (await storage.getServersByLocation(batchData.locationId)).length;
+      if (existingServersCount + batchData.quantity > location.capacity) {
+        return res.status(400).json({ 
+          error: `Lokasyon kapasitesi aşılıyor. Mevcut: ${existingServersCount}, Eklenmek istenen: ${batchData.quantity}, Kapasite: ${location.capacity}`
+        });
+      }
+      
+      const servers = await storage.createBatchServers(
+        batchData.modelId,
+        batchData.locationId,
+        batchData.quantity,
+        batchData.status
+      );
+      
+      res.status(201).json(servers);
+    } catch (err) {
+      handleError(err, res);
+    }
+  });
+
   // GET /api/servers - Get all servers
   app.get("/api/servers", async (_req: Request, res: Response) => {
     try {

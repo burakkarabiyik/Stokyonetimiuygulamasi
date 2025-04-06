@@ -13,6 +13,8 @@ import {
   InsertUser,
   Location,
   InsertLocation,
+  ServerModel,
+  InsertServerModel,
   LocationType,
   UserRole
 } from "@shared/schema";
@@ -38,12 +40,20 @@ export interface IStorage {
   updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
   deleteLocation(id: number): Promise<boolean>;
   
+  // Server Model operations
+  getAllServerModels(): Promise<ServerModel[]>;
+  getServerModelById(id: number): Promise<ServerModel | undefined>;
+  createServerModel(model: InsertServerModel): Promise<ServerModel>;
+  updateServerModel(id: number, model: Partial<InsertServerModel>): Promise<ServerModel | undefined>;
+  deleteServerModel(id: number): Promise<boolean>;
+  
   // Server operations
   getAllServers(): Promise<Server[]>;
   getServerById(id: number): Promise<Server | undefined>;
   getServerByServerId(serverId: string): Promise<Server | undefined>;
   getServersByLocation(locationId: number): Promise<Server[]>;
   createServer(server: InsertServer): Promise<Server>;
+  createBatchServers(modelId: number, locationId: number, quantity: number, status: string): Promise<Server[]>;
   updateServer(id: number, server: Partial<InsertServer>): Promise<Server | undefined>;
   deleteServer(id: number): Promise<boolean>;
   
@@ -79,12 +89,14 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private locations: Map<number, Location>;
+  private serverModels: Map<number, ServerModel>;
   private servers: Map<number, Server>;
   private serverNotes: Map<number, ServerNote[]>;
   private serverTransfers: Map<number, ServerTransfer[]>;
   private activities: Activity[];
   private userIdCounter: number;
   private locationIdCounter: number;
+  private serverModelIdCounter: number;
   private serverIdCounter: number;
   private noteIdCounter: number;
   private transferIdCounter: number;
@@ -94,12 +106,14 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.locations = new Map();
+    this.serverModels = new Map();
     this.servers = new Map();
     this.serverNotes = new Map();
     this.serverTransfers = new Map();
     this.activities = [];
     this.userIdCounter = 1;
     this.locationIdCounter = 1;
+    this.serverModelIdCounter = 1;
     this.serverIdCounter = 1;
     this.noteIdCounter = 1;
     this.transferIdCounter = 1;
@@ -412,8 +426,138 @@ export class MemStorage implements IStorage {
     };
   }
   
+  // Server Model operations
+  async getAllServerModels(): Promise<ServerModel[]> {
+    return Array.from(this.serverModels.values());
+  }
+
+  async getServerModelById(id: number): Promise<ServerModel | undefined> {
+    return this.serverModels.get(id);
+  }
+
+  async createServerModel(model: InsertServerModel): Promise<ServerModel> {
+    const id = this.serverModelIdCounter++;
+    const now = new Date();
+    const serverModel: ServerModel = {
+      ...model,
+      id,
+      createdAt: now
+    };
+    
+    this.serverModels.set(id, serverModel);
+    return serverModel;
+  }
+
+  async updateServerModel(id: number, modelUpdate: Partial<InsertServerModel>): Promise<ServerModel | undefined> {
+    const existingModel = this.serverModels.get(id);
+    
+    if (!existingModel) {
+      return undefined;
+    }
+    
+    const updatedModel = {
+      ...existingModel,
+      ...modelUpdate
+    };
+    
+    this.serverModels.set(id, updatedModel);
+    return updatedModel;
+  }
+
+  async deleteServerModel(id: number): Promise<boolean> {
+    return this.serverModels.delete(id);
+  }
+
+  // Batch server creation
+  async createBatchServers(modelId: number, locationId: number, quantity: number, status: string): Promise<Server[]> {
+    const model = this.serverModels.get(modelId);
+    if (!model) {
+      throw new Error("Sunucu modeli bulunamadı");
+    }
+    
+    const createdServers: Server[] = [];
+    
+    for (let i = 0; i < quantity; i++) {
+      const now = new Date();
+      const id = this.serverIdCounter++;
+      
+      // Server ID formatı: SRV-YIL-SAYAÇ
+      const year = now.getFullYear();
+      const counter = String(this.serverIdCounter).padStart(3, '0');
+      const serverId = `SRV-${year}-${counter}`;
+      
+      const newServer: Server = {
+        id,
+        serverId,
+        model: `${model.brand} ${model.name}`,
+        specs: model.specs,
+        locationId,
+        status,
+        ipAddress: null,
+        username: null,
+        password: null,
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      this.servers.set(id, newServer);
+      createdServers.push(newServer);
+      
+      // Add activity
+      this.addActivity({
+        serverId: id,
+        type: ActivityType.ADD,
+        description: `Toplu ekleme: ${newServer.serverId} (${model.brand} ${model.name})`,
+        userId: null
+      });
+    }
+    
+    return createdServers;
+  }
+
   // Initialize with sample data
   private initSampleData() {
+    // Initialize sample server models
+    const serverModels: InsertServerModel[] = [
+      {
+        name: "PowerEdge R740",
+        brand: "Dell",
+        specs: "2x Intel Xeon Gold 6230, 128GB RAM, 4x 1.8TB SSD"
+      },
+      {
+        name: "ProLiant DL380 Gen10",
+        brand: "HPE",
+        specs: "2x Intel Xeon Silver 4210, 64GB RAM, 2x 960GB SSD"
+      },
+      {
+        name: "ThinkSystem SR650",
+        brand: "Lenovo",
+        specs: "1x Intel Xeon Silver 4214, 32GB RAM, 2x 480GB SSD"
+      },
+      {
+        name: "PowerEdge R640",
+        brand: "Dell",
+        specs: "2x Intel Xeon Gold 5218, 96GB RAM, 4x 960GB SSD"
+      },
+      {
+        name: "SuperServer 1029U-TR4T",
+        brand: "Supermicro",
+        specs: "2x Intel Xeon Silver 4216, 64GB RAM, 2x 480GB SSD"
+      }
+    ];
+    
+    // Create server models
+    serverModels.forEach(model => {
+      const id = this.serverModelIdCounter++;
+      const now = new Date();
+      const newModel: ServerModel = {
+        ...model,
+        id,
+        createdAt: now
+      };
+      this.serverModels.set(id, newModel);
+    });
+    
     // Initialize sample locations
     const locations: InsertLocation[] = [
       {
