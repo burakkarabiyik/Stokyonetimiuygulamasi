@@ -1,9 +1,20 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import { eq } from 'drizzle-orm';
 import postgres from 'postgres';
 import * as schema from '@shared/schema';
 import { serverModels, users, locations, servers, UserRole } from '@shared/schema';
-import { hashPassword } from './auth';
+import { scrypt, randomBytes } from 'crypto';
+import { promisify } from 'util';
+
+const scryptAsync = promisify(scrypt);
+
+// Hash password using scrypt
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString('hex');
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString('hex')}.${salt}`;
+}
 
 // Database connection string from environment variable
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/server_inventory';
@@ -20,10 +31,10 @@ export async function initializeDatabase() {
     console.log('Initializing database...');
     
     // Run migrations (this will create tables if they don't exist)
-    await migrate(db, { migrationsFolder: './drizzle' });
+    await migrate(db, { migrationsFolder: './migrations' });
     
     // Check if admin user exists, create one if not
-    const adminUsers = await db.select().from(users).where(({ eq }) => eq(users.username, 'admin'));
+    const adminUsers = await db.select().from(users).where(eq(users.username, 'admin'));
     
     if (adminUsers.length === 0) {
       console.log('Creating default admin user...');

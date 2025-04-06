@@ -9,20 +9,41 @@ services:
     environment:
       - NODE_ENV=production
       - USE_DATABASE=true
-      - DATABASE_URL=postgres://${PGUSER}:${PGPASSWORD}@db:5432/${PGDATABASE}
+      - DATABASE_URL=postgres://${PGUSER:-postgres}:${PGPASSWORD:-postgres}@db:5432/${PGDATABASE:-server_inventory}
+      - PGUSER=${PGUSER:-postgres}
+      - PGPASSWORD=${PGPASSWORD:-postgres}
+      - PGDATABASE=${PGDATABASE:-server_inventory}
+      - PGHOST=db
+      - PGPORT=5432
+      - SESSION_SECRET=${SESSION_SECRET:-your_secret_key_here}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=${PGUSER}
-      - POSTGRES_PASSWORD=${PGPASSWORD}
-      - POSTGRES_DB=${PGDATABASE}
+      - POSTGRES_USER=${PGUSER:-postgres}
+      - POSTGRES_PASSWORD=${PGPASSWORD:-postgres}
+      - POSTGRES_DB=${PGDATABASE:-server_inventory}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "5432:5432"
 
 volumes:
   postgres_data:

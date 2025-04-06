@@ -39,6 +39,11 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint for Docker health checks
+  app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).send('OK');
+  });
+
   // Import and setup authentication
   const { setupAuth } = await import('./auth');
   setupAuth(app);
@@ -418,10 +423,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if model is used by servers
       const servers = await storage.getAllServers();
+      const storedModel = await storage.getServerModelById(id);
+      
       const modelInUse = servers.some(server => {
         const modelName = `${server.model}`.trim();
-        const storedModel = storage.getServerModelById(id);
-        return modelName.includes(`${storedModel?.brand} ${storedModel?.name}`);
+        return storedModel && modelName.includes(`${storedModel.brand} ${storedModel.name}`);
       });
       
       if (modelInUse) {
