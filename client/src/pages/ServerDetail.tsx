@@ -3,10 +3,11 @@ import { useParams, useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Server, Activity, ServerNote } from "@shared/schema";
+import { Server, Activity, ServerNote, Location } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import TransferModal from "@/components/TransferModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
+import EditServerModal from "@/components/EditServerModal";
 import { formatDate } from "@/lib/utils";
 
 export default function ServerDetail() {
@@ -16,6 +17,7 @@ export default function ServerDetail() {
   
   const [noteText, setNoteText] = useState("");
   const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState(false);
   
   const { data: server, isLoading, error } = useQuery<Server>({
@@ -25,6 +27,11 @@ export default function ServerDetail() {
   const { data: activities, isLoading: activitiesLoading } = useQuery<Activity[]>({
     queryKey: [`/api/servers/${id}/activities`],
     enabled: !!server,
+  });
+  
+  const { data: location } = useQuery<Location>({
+    queryKey: [`/api/locations/${server?.locationId}`],
+    enabled: !!server && !!server.locationId,
   });
   
   const addNoteMutation = useMutation({
@@ -222,7 +229,27 @@ export default function ServerDetail() {
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Lokasyon</dt>
-                <dd className="mt-1 text-sm text-gray-900">{server.location}</dd>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {location ? location.name : `Lokasyon #${server.locationId}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">IP Adresi</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {server.ipAddress || "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Kullanıcı Adı</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {server.username || "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Şifre</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {server.password ? "••••••••" : "-"}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Durum</dt>
@@ -248,7 +275,10 @@ export default function ServerDetail() {
               </svg>
               Transfer Et
             </button>
-            <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <button 
+              onClick={() => setEditModalOpen(true)}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
@@ -355,6 +385,12 @@ export default function ServerDetail() {
         onClose={() => setConfirmDeleteModalOpen(false)} 
         onConfirm={handleDelete}
         isDeleting={deleteServerMutation.isPending}
+      />
+      
+      <EditServerModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        server={server}
       />
     </div>
   );

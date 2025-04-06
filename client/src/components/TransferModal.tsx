@@ -1,9 +1,19 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { Server } from "@shared/schema";
+
+interface Location {
+  id: number;
+  name: string;
+  type: string;
+  address: string | null;
+  capacity: number;
+  isActive: boolean;
+  createdAt: string;
+}
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -15,16 +25,53 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
   const { toast } = useToast();
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format for input date
   
+  // Mevcut konum bilgisini almak için lokasyonları çekelim
+  const { data: locations = [], isLoading: isLoadingLocations } = useQuery<Location[]>({
+    queryKey: ["/api/locations"],
+    enabled: isOpen, // Modal açıkken çalışsın
+  });
+  
+  // Sunucu'nun mevcut lokasyonunu bulalım
+  const currentLocation = locations.find(loc => loc.id === server.locationId);
+  
+  // Aktif ve mevcut konumdan farklı lokasyonları filtrele
+  const availableLocations = locations.filter(
+    location => location.isActive && location.id !== server.locationId
+  );
+  
   const [formData, setFormData] = useState({
-    targetLocation: server.location === "Ankara Depo" ? "İstanbul Merkez" : server.location === "İstanbul Merkez" ? "İzmir Depo" : "Ankara Depo",
+    targetLocationId: 0,
     transferDate: today,
     notes: "",
-    ipAddress: "",
-    password: ""
+    ipAddress: server.ipAddress || "",
+    password: server.password || ""
   });
+  
+  // Lokasyonlar yüklendiğinde veya modal açıldığında default hedef lokasyonu ayarla
+  useEffect(() => {
+    if (locations.length > 0 && isOpen) {
+      const filteredLocations = locations.filter(
+        loc => loc.isActive && loc.id !== server.locationId
+      );
+      
+      if (filteredLocations.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          targetLocationId: filteredLocations[0].id
+        }));
+      }
+    }
+  }, [locations, isOpen, server.locationId]);
   
   const transferMutation = useMutation({
     mutationFn: async () => {
+      // Seçilen lokasyonu bul
+      const targetLocation = locations.find(loc => loc.id === formData.targetLocationId);
+      
+      if (!targetLocation) {
+        throw new Error("Hedef lokasyon bulunamadı");
+      }
+      
       // Oluşturulacak not
       let serverNote = `IP Adresi: ${formData.ipAddress}\nŞifre: ${formData.password}`;
       if (formData.notes.trim()) {
@@ -33,7 +80,8 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
 
       // Transfer kaydını oluştur
       await apiRequest('POST', `/api/servers/${server.id}/transfers`, {
-        toLocation: formData.targetLocation,
+        toLocationId: targetLocation.id,
+        toLocationName: targetLocation.name,
         transferDate: new Date(formData.transferDate),
         notes: serverNote
       });
@@ -66,11 +114,11 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
     e.preventDefault();
     
     // Validate
-    if (formData.targetLocation === server.location) {
+    if (!formData.targetLocationId) {
       toast({
         variant: "destructive",
         title: "Hata",
-        description: "Hedef konum mevcut konumla aynı olamaz.",
+        description: "Hedef konum seçmelisiniz.",
       });
       return;
     }
@@ -89,12 +137,12 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === "targetLocationId") {
+      setFormData(prev => ({ ...prev, [name]: parseInt(value) }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
-  
-  // Get available locations that are not the current location
-  const availableLocations = ["Ankara Depo", "İstanbul Merkez", "İzmir Depo"]
-    .filter(location => location !== server.location);
   
   if (!isOpen) return null;
   
@@ -149,24 +197,30 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                   <input 
                     type="text" 
                     id="currentLocation" 
-                    value={server.location}
+                    value={isLoadingLocations ? "Yükleniyor..." : (currentLocation?.name || "Belirtilmemiş")}
                     readOnly
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm bg-gray-50" 
                   />
                 </div>
                 <div>
-                  <label htmlFor="targetLocation" className="block text-sm font-medium text-gray-700">Hedef Konum</label>
-                  <select 
-                    id="targetLocation" 
-                    name="targetLocation" 
-                    value={formData.targetLocation}
-                    onChange={handleChange}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-                  >
-                    {availableLocations.map((location, index) => (
-                      <option key={index} value={location}>{location}</option>
-                    ))}
-                  </select>
+                  <label htmlFor="targetLocationId" className="block text-sm font-medium text-gray-700">Hedef Konum</label>
+                  {availableLocations.length === 0 ? (
+                    <div className="mt-1 text-sm text-red-500">
+                      {isLoadingLocations ? "Lokasyonlar yükleniyor..." : "Transfer için uygun aktif lokasyon bulunamadı."}
+                    </div>
+                  ) : (
+                    <select 
+                      id="targetLocationId" 
+                      name="targetLocationId" 
+                      value={formData.targetLocationId}
+                      onChange={handleChange}
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                    >
+                      {availableLocations.map((location) => (
+                        <option key={location.id} value={location.id}>{location.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="transferDate" className="block text-sm font-medium text-gray-700">Transfer Tarihi</label>
@@ -218,7 +272,7 @@ export default function TransferModal({ isOpen, onClose, server }: TransferModal
                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                   <button 
                     type="submit" 
-                    disabled={transferMutation.isPending}
+                    disabled={transferMutation.isPending || availableLocations.length === 0}
                     className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {transferMutation.isPending ? "İşleniyor..." : "Transfer Başlat"}

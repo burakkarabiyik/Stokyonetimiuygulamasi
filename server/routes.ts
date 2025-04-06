@@ -438,10 +438,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Sunucu bulunamadı" });
       }
       
+      // Sunucunun konumunu bul
+      const location = await storage.getLocationById(server.locationId);
+      const fromLocationName = location ? location.name : "Bilinmiyor";
+      
       const transferData = insertTransferSchema.parse({
         ...req.body,
         serverId: id,
-        fromLocation: server.location
+        fromLocationId: server.locationId,
+        fromLocationName: fromLocationName
       });
       
       const transfer = await storage.createTransfer(transferData);
@@ -449,7 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update server status and location
       await storage.updateServer(id, {
         status: ServerStatus.TRANSIT,
-        location: transferData.toLocation
+        locationId: transferData.toLocationId
       });
       
       res.status(201).json(transfer);
