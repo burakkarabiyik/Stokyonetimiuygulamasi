@@ -42,7 +42,7 @@ export default function AuthPage() {
       <div className="w-full max-w-6xl grid md:grid-cols-2 gap-10 p-4">
         <Card className="w-full max-w-md mx-auto">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Sunucu Depo Yönetimi</CardTitle>
+            <CardTitle className="text-2xl font-bold">Sunucu Envanter Yönetimi</CardTitle>
             <CardDescription>
               Sisteme giriş yapmak için kullanıcı bilgilerinizi giriniz
             </CardDescription>
@@ -95,7 +95,7 @@ export default function AuthPage() {
 
         <div className="hidden md:flex flex-col justify-center">
           <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-primary-600 to-blue-500 bg-clip-text text-transparent">
-            Sunucu Envanteri & Depo Yönetim Sistemi
+            Sunucu Envanter Yönetim Sistemi
           </h2>
           <p className="text-gray-600 mb-6">
             Firma bünyesindeki tüm sunucu ve donanımların takibi, konumlandırılması ve yönetimi için geliştirilmiş kapsamlı bir sistemdir.
@@ -135,8 +135,8 @@ export default function AuthPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <h3 className="font-semibold mb-1">Depo Yönetimi</h3>
-              <p className="text-sm text-gray-500">Depo ve lokasyon kapasitelerini izleyin, sunucu yerleşimlerini optimize edin</p>
+              <h3 className="font-semibold mb-1">Lokasyon Yönetimi</h3>
+              <p className="text-sm text-gray-500">Depo, ofis ve saha lokasyonlarını izleyin, sunucu yerleşimlerini optimize edin</p>
             </div>
           </div>
         </div>

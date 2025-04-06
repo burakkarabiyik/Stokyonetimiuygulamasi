@@ -83,7 +83,7 @@ function Router() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <h1 className="ml-2 md:ml-0 text-lg font-semibold text-gray-800">Sunucu Depo Yönetimi</h1>
+                <h1 className="ml-2 md:ml-0 text-lg font-semibold text-gray-800">Sunucu Envanter Yönetimi</h1>
               </div>
               <div className="flex items-center">
                 <DropdownMenu>
