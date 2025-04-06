@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  app:
+    build: 
+      context: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - USE_DATABASE=true
+      - DATABASE_URL=postgres://${PGUSER}:${PGPASSWORD}@db:5432/${PGDATABASE}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${PGUSER}
+      - POSTGRES_PASSWORD=${PGPASSWORD}
+      - POSTGRES_DB=${PGDATABASE}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

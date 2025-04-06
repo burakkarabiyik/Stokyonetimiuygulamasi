@@ -39,70 +39,26 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication
-  const setupAuth = () => {
-    app.use(session({
-      secret: 'depo-yonetim-app-secret',
-      resave: false,
-      saveUninitialized: false,
-      cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 1 day
-    }));
-    
-    app.use(passport.initialize());
-    app.use(passport.session());
-    
-    passport.use(new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user) {
-          return done(null, false, { message: 'Kullanıcı adı veya şifre hatalı' });
-        }
-        
-        const passwordMatch = await comparePasswords(password, user.password);
-        if (!passwordMatch) {
-          return done(null, false, { message: 'Kullanıcı adı veya şifre hatalı' });
-        }
-        
-        return done(null, user);
-      } catch (err) {
-        return done(err);
-      }
-    }));
-    
-    passport.serializeUser((user: any, done) => {
-      done(null, user.id);
-    });
-    
-    passport.deserializeUser(async (id: number, done) => {
-      try {
-        const user = await storage.getUserById(id);
-        done(null, user);
-      } catch (err) {
-        done(err);
-      }
-    });
-    
-    // Create admin user if not exists
-    (async () => {
-      try {
-        const admin = await storage.getUserByUsername('admin');
-        if (!admin) {
-          await storage.createUser({
-            username: 'admin',
-            password: await hashPassword('admin123'),
-            role: UserRole.ADMIN,
-            fullName: 'Admin Kullanıcı',
-            isActive: true
-          });
-          console.log('Default admin user created');
-        }
-      } catch (err) {
-        console.error('Error creating admin user:', err);
-      }
-    })();
-  };
+  // Import and setup authentication
+  const { setupAuth } = await import('./auth');
+  setupAuth(app);
   
-  setupAuth();
+  // Create admin user if not exists
+  try {
+    const admin = await storage.getUserByUsername('admin');
+    if (!admin) {
+      await storage.createUser({
+        username: 'admin',
+        password: await hashPassword('admin123'),
+        role: UserRole.ADMIN,
+        fullName: 'Admin Kullanıcı',
+        isActive: true
+      });
+      console.log('Default admin user created');
+    }
+  } catch (err) {
+    console.error('Error creating admin user:', err);
+  }
   
   // Auth middleware
   const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
