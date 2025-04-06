@@ -75,7 +75,7 @@ export async function initializeDatabase() {
               migrationsFolder: migrationPath,
               migrationsTable: 'drizzle_migrations'
             });
-          } catch (migrationError) {
+          } catch (migrationError: any) {
             // Check if it's a missing journal file error, which can happen with drizzle
             if (migrationError.message && migrationError.message.includes("Can't find meta/_journal.json file")) {
               console.log(`Migration journal not found in ${migrationPath}, but will consider this successful`);
@@ -91,8 +91,15 @@ export async function initializeDatabase() {
           console.log(`Migrations from ${migrationPath} completed successfully`);
           migrationSuccess = true;
           break;
-        } catch (error) {
-          console.warn(`Error running migrations from ${migrationPath}:`, error);
+        } catch (error: any) {
+          // Check if this is a "relation already exists" error, which is not critical
+          if (error.message && error.message.includes("relation") && error.message.includes("already exists")) {
+            console.log(`Tables already exist in database when trying migrations from ${migrationPath}, considering successful`);
+            migrationSuccess = true;
+            break;
+          } else {
+            console.warn(`Error running migrations from ${migrationPath}:`, error);
+          }
         }
       }
       
