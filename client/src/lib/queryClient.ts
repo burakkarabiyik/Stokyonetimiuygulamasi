@@ -7,6 +7,32 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Kong API Gateway öneki için yardımcı fonksiyon
+function getApiUrl(url: string): string {
+  // Eğer url zaten tam bir URL ise (http:// veya https:// ile başlıyorsa), değiştirme
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // Eğer url zaten /stok ile başlıyorsa, değiştirme
+  if (url.startsWith('/stok/')) {
+    return url;
+  }
+  
+  // Eğer url / ile başlıyorsa, /stok ekle
+  if (url.startsWith('/')) {
+    // API endpointi ise /stok önekini ekle
+    if (url.startsWith('/api/')) {
+      return `/stok${url}`;
+    }
+    // Diğer endpoint'ler için de /stok ekle
+    return `/stok${url}`;
+  }
+  
+  // Eğer url / ile başlamıyorsa, /stok/ ekle
+  return `/stok/${url}`;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -33,7 +59,10 @@ export async function apiRequest(
     }, {} as Record<string, any>);
   }
   
-  const res = await fetch(url, {
+  // Kong API Gateway önekini ekle
+  const apiUrl = getApiUrl(url);
+  
+  const res = await fetch(apiUrl, {
     method,
     headers,
     body: processedData ? JSON.stringify(processedData) : undefined,
@@ -60,7 +89,11 @@ export const getQueryFn: <T>(options: {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
-    const res = await fetch(queryKey[0] as string, {
+    // Kong API Gateway önekini ekle
+    const url = queryKey[0] as string;
+    const apiUrl = getApiUrl(url);
+    
+    const res = await fetch(apiUrl, {
       headers
     });
 

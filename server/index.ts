@@ -2,10 +2,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./db";
+import { setupProxyMiddleware } from "./proxy-middleware";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Kong API Gateway ile çalışabilmek için proxy middleware'i ekle
+setupProxyMiddleware(app);
 
 app.use((req, res, next) => {
   const start = Date.now();
